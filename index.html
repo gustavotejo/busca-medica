@@ -1,0 +1,808 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Busca Médica</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: cabeçalho com abas. Em "Buscar", painel de filtros à esquerda e tabela de resultados à direita (empilha no celular). */
+:root {
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --bg: #EEF3F4;
+  --surface: #FFFFFF;
+  --surface-2: #F3F7F8;
+  --ink: #13262C;
+  --muted: #56696F;
+  --line: #D3DEE0;
+  --accent: #0A766F;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #D5EEEB;
+  --accent-text: #075A55;
+  --danger: #B23B2A;
+  --danger-ink: #FFFFFF;
+  --danger-soft: #FBE4DF;
+  --shadow: 0 1px 2px rgba(19, 38, 44, .06), 0 4px 14px rgba(19, 38, 44, .05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C1517;
+    --surface: #142124;
+    --surface-2: #1A2B2F;
+    --ink: #E3EEF0;
+    --muted: #8EA5AB;
+    --line: #27393D;
+    --accent: #43BDB3;
+    --accent-ink: #06211F;
+    --accent-soft: #17383A;
+    --accent-text: #8BE0D8;
+    --danger: #F08A78;
+    --danger-ink: #2A0D08;
+    --danger-soft: #3A201C;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C1517;
+  --surface: #142124;
+  --surface-2: #1A2B2F;
+  --ink: #E3EEF0;
+  --muted: #8EA5AB;
+  --line: #27393D;
+  --accent: #43BDB3;
+  --accent-ink: #06211F;
+  --accent-soft: #17383A;
+  --accent-text: #8BE0D8;
+  --danger: #F08A78;
+  --danger-ink: #2A0D08;
+  --danger-soft: #3A201C;
+  --shadow: none;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 14px;
+  line-height: 1.5;
+  padding-block: 20px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app { max-width: 1120px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; }
+h1 { font-size: 26px; line-height: 1.1; font-weight: 700; letter-spacing: -.01em; }
+h2 { font-size: 20px; line-height: 1.2; font-weight: 700; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.pad { padding: 24px 4px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Cabeçalho */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.mark { width: 42px; height: 42px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; flex: none; }
+.sub { color: var(--muted); font-size: 13.5px; margin-top: 2px; }
+.status { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 500; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.status[data-mode="cloud"]::before { background: var(--accent); }
+.status[data-mode="local"]::before { background: #C98A12; }
+.status[data-mode="error"]::before { background: var(--danger); }
+
+.tabs { display: flex; gap: 4px; margin: 20px 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { appearance: none; background: none; border: 0; color: var(--muted); font: 600 14.5px var(--f-body); padding: 10px 14px; margin-bottom: -1px; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+.login-screen { max-width: 460px; margin: 8vh auto 0; padding: 16px; }
+.login-panel { display: grid; gap: 16px; }
+.login-panel .brand { margin-bottom: 8px; }
+.login-panel .btn { width: 100%; }
+.login-panel .muted { color: var(--muted); font-size: 12px; }
+.login-panel input { width: 100%; min-height: 44px; font: 500 16px var(--f-body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+/* Componentes */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field > label, .legend { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+input[type="text"], select {
+  width: 100%; min-height: 44px; font: 500 16px var(--f-body); color: var(--ink);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+}
+input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
+.btn { font: 600 14.5px var(--f-body); border-radius: 10px; padding: 10px 16px; min-height: 44px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn.ghost:hover { border-color: var(--muted); }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: var(--danger-ink); }
+.link { font: 600 13px var(--f-body); padding: 6px 8px; min-height: 32px; border: 0; background: none; color: var(--accent-text); cursor: pointer; border-radius: 8px; }
+.link:hover { background: var(--accent-soft); }
+.link.danger { color: var(--danger); }
+.link.danger:hover { background: var(--danger-soft); }
+.err { color: var(--danger); font-weight: 500; min-height: 0; }
+.err:empty { display: none; }
+.ro-note { margin-bottom: 14px; padding: 10px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12.5px; font-weight: 500; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); }
+.chip.match { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.tag { display: inline-block; font-size: 13px; font-weight: 600; padding: 2px 9px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-text); }
+.tag.match { background: var(--accent); color: var(--accent-ink); }
+
+/* Buscar */
+.search { display: grid; grid-template-columns: 288px minmax(0, 1fr); gap: 24px; align-items: start; }
+.filters { position: sticky; top: 16px; display: grid; gap: 16px; }
+.filters h2 { font-size: 17px; }
+.summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; margin-bottom: 14px; }
+.summary:empty { display: none; }
+.big { font: 700 40px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.count-text { font-size: 15px; color: var(--muted); }
+.fchips { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.fchip { display: inline-flex; align-items: center; gap: 6px; font: 500 13px var(--f-body); padding: 4px 6px 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-text); border: 0; cursor: pointer; }
+.fchip b { font-weight: 600; }
+.fchip span { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; font-size: 15px; line-height: 1; }
+.fchip:hover span { background: var(--accent); color: var(--accent-ink); }
+
+.table { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+.row {
+  display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr) minmax(0, 2fr) 150px;
+  grid-template-areas: "name esp conv act"; gap: 6px 16px; padding: 14px 18px; border-top: 1px solid var(--line); align-items: start;
+}
+.row.head { border-top: 0; background: var(--surface-2); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-block: 10px; }
+.c-name { grid-area: name; min-width: 0; }
+.c-esp { grid-area: esp; min-width: 0; }
+.c-conv { grid-area: conv; min-width: 0; }
+.c-act { grid-area: act; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 2px; }
+.name { font-size: 15.5px; font-weight: 600; overflow-wrap: anywhere; }
+.ask { font-size: 13px; color: var(--danger); font-weight: 600; padding-right: 2px; }
+.empty { text-align: center; padding: 36px 20px; display: grid; gap: 10px; justify-items: center; }
+.empty p { max-width: 46ch; color: var(--muted); }
+
+/* Cadastrar */
+.form { max-width: 760px; display: grid; gap: 18px; }
+.bulk { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 4px -8px; }
+.picks { display: flex; flex-wrap: wrap; gap: 8px; }
+.pick { position: relative; display: inline-flex; align-items: center; min-height: 36px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-weight: 500; cursor: pointer; }
+.pick input { position: absolute; opacity: 0; pointer-events: none; }
+.pick:hover { border-color: var(--muted); }
+.pick:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+.pick:has(input:checked)::before { content: "✓"; margin-right: 6px; }
+.pick:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* Configurações */
+.cfg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; align-items: start; }
+.cfg-grid .panel { display: grid; gap: 14px; min-width: 0; }
+.cfg-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.add { display: flex; gap: 8px; }
+.add input { flex: 1; min-width: 0; }
+.cfg-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-weight: 500; }
+.cfg-chip .x { width: 24px; height: 24px; border-radius: 50%; border: 0; background: none; color: var(--muted); font-size: 17px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.cfg-chip .x:hover { background: var(--danger-soft); color: var(--danger); }
+.confirm { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 10px; background: var(--danger-soft); border: 1px solid var(--danger); }
+.confirm p { flex: 1 1 200px; min-width: 0; }
+.confirm .actions { gap: 8px; }
+.confirm .btn { min-height: 36px; padding: 6px 14px; }
+
+[data-ro="1"] .writer { display: none !important; }
+
+.toast { position: fixed; left: 0; right: 0; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: center; padding-inline: max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; opacity: 0; transform: translateY(8px); transition: opacity .18s, transform .18s; z-index: 20; }
+.toast.show { opacity: 1; transform: none; }
+.toast span { background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-weight: 500; box-shadow: 0 6px 20px rgba(0, 0, 0, .25); }
+
+@media (max-width: 820px) {
+  .search { grid-template-columns: minmax(0, 1fr); }
+  .filters { position: static; }
+  .row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name act" "esp esp" "conv conv"; padding: 14px; }
+  .row.head { display: none; }
+  .c-act { justify-content: flex-end; }
+}
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+
+<section id="login-screen" class="login-screen" hidden>
+  <form id="login-form" class="panel login-panel">
+    <div class="brand"><div class="mark" aria-hidden="true">+</div><div><h1>Busca Médica</h1><p class="sub">Entre para acessar o cadastro compartilhado</p></div></div>
+    <div class="field"><label for="login-username">Usuário ou e-mail</label><input id="login-username" type="text" autocomplete="username" required minlength="3" maxlength="254" placeholder="Seu usuário ou e-mail cadastrado" autocapitalize="none" spellcheck="false"></div>
+    <div class="field"><label for="login-password">Senha</label><input id="login-password" type="password" autocomplete="current-password" required placeholder="Sua senha"></div>
+    <p id="login-error" class="err" role="alert"></p>
+    <button id="login-submit" class="btn" type="submit">Entrar</button>
+    <p class="muted">Use o usuário e a senha fornecidos pelo administrador.</p>
+  </form>
+</section>
+<div class="app" id="app" data-ro="0" hidden>
+  <header class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
+      <div>
+        <h1>Busca Médica</h1>
+        <p class="sub">Seus médicos por especialidade e convênio</p>
+      </div>
+    </div>
+    <span class="status" id="status" role="status" data-mode="loading">Conectando…</span>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Seções">
+    <button class="tab" role="tab" id="tab-buscar" data-tab="buscar" aria-controls="p-buscar" aria-selected="true">Buscar</button>
+    <button class="tab" role="tab" id="tab-cadastrar" data-tab="cadastrar" aria-controls="p-cadastrar" aria-selected="false">Cadastrar médico</button>
+    <button class="tab" role="tab" id="tab-configuracoes" data-tab="configuracoes" aria-controls="p-config" aria-selected="false">Configurações</button>
+  </nav>
+
+  <section id="p-buscar" role="tabpanel" aria-labelledby="tab-buscar">
+    <div class="search">
+      <aside class="panel filters" aria-label="Filtros">
+        <h2>Filtrar por</h2>
+        <div class="field">
+          <label for="flt-esp">Especialidade</label>
+          <select id="flt-esp"></select>
+        </div>
+        <div class="field">
+          <label for="flt-conv">Convênio</label>
+          <select id="flt-conv"></select>
+        </div>
+        <div class="field">
+          <label for="flt-q">Nome do médico</label>
+          <input type="text" id="flt-q" autocomplete="off" placeholder="Digite parte do nome">
+        </div>
+        <button type="button" class="btn ghost" id="flt-clear">Limpar filtros</button>
+      </aside>
+      <div>
+        <div class="summary" id="summary" aria-live="polite"></div>
+        <div id="results"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="p-cadastrar" role="tabpanel" aria-labelledby="tab-cadastrar" hidden>
+    <p class="ro-note" id="ro-note-1" hidden>Você está vendo esta página em modo somente leitura. Só quem tem permissão de edição pode cadastrar ou alterar médicos.</p>
+    <form class="panel form writer" id="form" novalidate>
+      <h2 id="form-title">Cadastrar médico</h2>
+      <div class="field">
+        <label for="f-nome">Nome do médico</label>
+        <input type="text" id="f-nome" autocomplete="off" placeholder="Ex.: Dra. Maria Souza">
+      </div>
+      <div class="field">
+        <label for="f-esp">Especialidade</label>
+        <select id="f-esp"></select>
+      </div>
+      <div class="field">
+        <div class="legend" id="lg-conv">Convênios aceitos <span id="conv-count"></span></div>
+        <div class="bulk">
+          <button type="button" class="link" id="conv-all">Marcar todos</button>
+          <button type="button" class="link" id="conv-none">Desmarcar todos</button>
+        </div>
+        <div class="picks" id="f-conv" role="group" aria-labelledby="lg-conv"></div>
+      </div>
+      <p class="err" id="f-err" role="alert"></p>
+      <div class="actions">
+        <button class="btn" type="submit" id="f-save">Salvar médico</button>
+        <button class="btn ghost" type="button" id="f-cancel" hidden>Cancelar edição</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="p-config" role="tabpanel" aria-labelledby="tab-configuracoes" hidden>
+    <p class="ro-note" id="ro-note-2" hidden>Você está vendo esta página em modo somente leitura. Só quem tem permissão de edição pode alterar as listas.</p>
+    <div class="cfg-grid">
+      <section class="panel" aria-labelledby="h-esp">
+        <div class="cfg-head"><h2 id="h-esp">Especialidades</h2><span class="muted" id="cfg-esp-n"></span></div>
+        <form class="add writer" id="add-esp" novalidate>
+          <label class="sr" for="cfg-esp-in">Nova especialidade</label>
+          <input type="text" id="cfg-esp-in" autocomplete="off" placeholder="Nova especialidade">
+          <button class="btn" type="submit">Adicionar</button>
+        </form>
+        <p class="err" id="cfg-esp-err"></p>
+        <div id="cfg-esp-confirm"></div>
+        <div class="chips" id="cfg-esp-list"></div>
+      </section>
+      <section class="panel" aria-labelledby="h-conv">
+        <div class="cfg-head"><h2 id="h-conv">Convênios</h2><span class="muted" id="cfg-conv-n"></span></div>
+        <form class="add writer" id="add-conv" novalidate>
+          <label class="sr" for="cfg-conv-in">Novo convênio</label>
+          <input type="text" id="cfg-conv-in" autocomplete="off" placeholder="Novo convênio">
+          <button class="btn" type="submit">Adicionar</button>
+        </form>
+        <p class="err" id="cfg-conv-err"></p>
+        <div id="cfg-conv-confirm"></div>
+        <div class="chips" id="cfg-conv-list"></div>
+      </section>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"><span></span></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  var DEF_ESP = ["Endocrinologista", "Cardiologista", "Geriatra", "Nefrologista", "Reumatologista", "Clínico Geral", "Infectologista", "Psicologia", "Urologista", "Gastroenterologista", "Ortopedista", "Psiquiatra", "Nutricionista", "Angiologista", "Ginecologista", "Dermatologista"];
+  var DEF_CONV = ["AFRAFEP", "ASSEFAZ", "BRADESCO", "CAMED", "CAPESAUDE", "CASEMBRAPA", "CASSI", "COMSEDER", "CONAB", "FACHESF", "FUNASA", "FUSMAN", "FUSEX", "GEAP", "AMIL", "PETROBRAS", "POSTAL SAUDE", "SAÚDE CAIXA", "SULAMERICA", "SMILE", "UNIMED"];
+  var TABS = { buscar: "p-buscar", cadastrar: "p-cadastrar", configuracoes: "p-config" };
+
+  var S = {
+    esp: DEF_ESP.slice(), conv: DEF_CONV.slice(), medicos: [],
+    docsSeen: false, mode: "loading", canWrite: true,
+    f: { esp: "", conv: "", q: "" },
+    form: { id: null, nome: "", esp: "", conv: new Set() },
+    pending: null, delId: null
+  };
+
+  function $(id) { return document.getElementById(id); }
+  function norm(s) { return String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim(); }
+  var collator = new Intl.Collator("pt-BR", { sensitivity: "base" });
+  function sorted(a) { return a.slice().sort(collator.compare); }
+  function pl(n, one, many) { return n === 1 ? one : many; }
+
+  function h(tag, props) {
+    var el = document.createElement(tag);
+    props = props || {};
+    for (var k in props) {
+      var v = props[k];
+      if (v === null || v === undefined || v === false) continue;
+      if (k === "class") el.className = v;
+      else if (k === "text") el.textContent = v;
+      else if (k.slice(0, 2) === "on") el.addEventListener(k.slice(2), v);
+      else if (k === "for") el.htmlFor = v;
+      else if (k === "checked" || k === "disabled" || k === "selected" || k === "value" || k === "hidden") el[k] = v;
+      else el.setAttribute(k, v === true ? "" : v);
+    }
+    var kids = Array.prototype.slice.call(arguments, 2);
+    kids.forEach(function (c) {
+      if (Array.isArray(c)) c.forEach(function (d) { if (d != null && d !== false) el.append(d.nodeType ? d : document.createTextNode(d)); });
+      else if (c != null && c !== false) el.append(c.nodeType ? c : document.createTextNode(c));
+    });
+    return el;
+  }
+
+  var toastTimer;
+  function toast(msg) {
+    var t = $("toast");
+    t.firstElementChild.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove("show"); }, 2600);
+  }
+
+  /* ---------- Persistência Supabase ---------- */
+  var SUPABASE_URL = "https://xcgrcwoclltcputfmyfz.supabase.co";
+  var SUPABASE_KEY = "sb_publishable_FgpQNUD1bpk4nACMI22A0Q_suDVEvM0";
+  if (!window.supabase || typeof window.supabase.createClient !== "function") {
+    document.getElementById("login-screen").hidden = false;
+    document.getElementById("app").hidden = true;
+    document.getElementById("login-error").textContent = "Não foi possível carregar a biblioteca do Supabase. Verifique sua conexão com a internet e recarregue a página.";
+    return;
+  }
+  var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  var currentUser = null;
+  var realtimeChannel = null;
+
+  function cleanDoc(id, d) {
+    return { id: id, nome: String(d.nome || ""), especialidade: String(d.especialidade || ""), convenios: Array.isArray(d.convenios) ? d.convenios.map(String) : [] };
+  }
+  function showLogin(message) {
+    $("login-screen").hidden = false;
+    $("app").hidden = true;
+    $("login-error").textContent = message || "";
+    $("login-submit").disabled = false;
+    $("login-submit").textContent = "Entrar";
+  }
+  function showApp() {
+    $("login-screen").hidden = true;
+    $("app").hidden = false;
+  }
+  function enqueue(fn) {
+    return Promise.resolve().then(fn).then(function () { return true; }).catch(function (e) {
+      console.error(e);
+      toast(e && e.message ? "Erro ao salvar: " + e.message : "Não foi possível salvar. Verifique sua conexão e permissões.");
+      return false;
+    });
+  }
+  async function persistConfig() {
+    return enqueue(async function () {
+      var r = await supabase.from("app_config").upsert({ id: 1, especialidades: S.esp, convenios: S.conv, updated_at: new Date().toISOString(), updated_by: currentUser.id });
+      if (r.error) throw r.error;
+      return true;
+    });
+  }
+  async function persistDoctor(m) {
+    return enqueue(async function () {
+      var data = { nome: m.nome, especialidade: m.especialidade, convenios: m.convenios, updated_at: new Date().toISOString(), updated_by: currentUser.id };
+      var r = m.id ? await supabase.from("medicos").update(data).eq("id", m.id).select().single() : await supabase.from("medicos").insert(data).select().single();
+      if (r.error) throw r.error;
+      if (r.data) {
+        var rec = cleanDoc(r.data.id, r.data);
+        var i = S.medicos.findIndex(function (x) { return x.id === rec.id; });
+        if (i >= 0) S.medicos[i] = rec; else S.medicos.push(rec);
+        renderAll();
+      }
+      return true;
+    });
+  }
+  async function persistDelete(id) {
+    return enqueue(async function () {
+      var r = await supabase.from("medicos").delete().eq("id", id);
+      if (r.error) throw r.error;
+      S.medicos = S.medicos.filter(function (x) { return x.id !== id; });
+      renderAll();
+      return true;
+    });
+  }
+  async function loadCloudData() {
+    var results = await Promise.all([
+      supabase.from("app_config").select("especialidades,convenios").eq("id", 1).single(),
+      supabase.from("medicos").select("id,nome,especialidade,convenios,created_at,updated_at,updated_by").order("nome")
+    ]);
+    if (results[0].error) throw results[0].error;
+    if (results[1].error) throw results[1].error;
+    var cfg = results[0].data;
+    if (cfg) {
+      S.esp = Array.isArray(cfg.especialidades) && cfg.especialidades.length ? cfg.especialidades.map(String) : DEF_ESP.slice();
+      S.conv = Array.isArray(cfg.convenios) && cfg.convenios.length ? cfg.convenios.map(String) : DEF_CONV.slice();
+    }
+    S.medicos = (results[1].data || []).map(function (m) { return cleanDoc(m.id, m); });
+    S.docsSeen = true;
+    S.mode = "cloud";
+    renderAll();
+  }
+  async function connect() {
+    try {
+      var auth = await supabase.auth.getSession();
+      if (auth.error) throw auth.error;
+      if (!auth.data.session) { showLogin(); return; }
+      currentUser = auth.data.session.user;
+      await initializeUser();
+    } catch (e) {
+      console.error(e);
+      showLogin("Não foi possível conectar. Confira a configuração do Supabase e tente novamente.");
+    }
+  }
+  async function initializeUser() {
+    var member = await supabase.from("team_members").select("role").eq("user_id", currentUser.id).maybeSingle();
+    if (member.error) throw member.error;
+    if (!member.data) {
+      await supabase.auth.signOut();
+      currentUser = null;
+      showLogin("Seu usuário ainda não foi incluído na equipe. Peça ao administrador para conceder acesso.");
+      return;
+    }
+    S.canWrite = member.data.role === "admin" || member.data.role === "editor";
+    showApp();
+    await loadCloudData();
+    if (realtimeChannel) await supabase.removeChannel(realtimeChannel);
+    realtimeChannel = supabase.channel("busca-medica-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "medicos" }, async function () {
+        try { var r = await supabase.from("medicos").select("id,nome,especialidade,convenios,created_at,updated_at,updated_by").order("nome"); if (!r.error) { S.medicos = (r.data || []).map(function (m) { return cleanDoc(m.id, m); }); renderAll(); } } catch (e) { console.error(e); }
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "app_config" }, async function () {
+        try { var r = await supabase.from("app_config").select("especialidades,convenios").eq("id", 1).single(); if (!r.error && r.data) { S.esp = (r.data.especialidades || []).map(String); S.conv = (r.data.convenios || []).map(String); renderAll(); } } catch (e) { console.error(e); }
+      }).subscribe();
+    renderAll();
+  }
+
+  /* ---------- Filtros ---------- */
+  function matches(m, f, skip) {
+    if (skip !== "esp" && f.esp && m.especialidade !== f.esp) return false;
+    if (skip !== "conv" && f.conv && m.convenios.indexOf(f.conv) < 0) return false;
+    if (f.q && norm(m.nome).indexOf(norm(f.q)) < 0) return false;
+    return true;
+  }
+  function setOptions(sel, first, items, current) {
+    var sig = first + "|" + items.map(function (i) { return i.v + ":" + i.label; }).join("|");
+    if (sel.dataset.sig !== sig) {
+      sel.replaceChildren.apply(sel, [h("option", { value: "", text: first })].concat(items.map(function (i) { return h("option", { value: i.v, text: i.label }); })));
+      sel.dataset.sig = sig;
+    }
+    sel.value = current;
+  }
+  function clearFilters() {
+    S.f = { esp: "", conv: "", q: "" };
+    $("flt-q").value = "";
+    renderSearch();
+  }
+
+  /* ---------- Renderização ---------- */
+  function renderStatus() {
+    var base = { loading: "Conectando…", cloud: "Salvo na nuvem", local: "Salvo só neste navegador", error: "Sem conexão com o armazenamento" }[S.mode];
+    var st = $("status");
+    st.textContent = (!S.canWrite && S.mode !== "error") ? base + " · somente leitura" : base;
+    st.dataset.mode = S.mode;
+    $("app").dataset.ro = S.canWrite ? "0" : "1";
+    $("ro-note-1").hidden = S.canWrite;
+    $("ro-note-2").hidden = S.canWrite;
+  }
+
+  function renderFilters() {
+    if (S.f.esp && S.esp.indexOf(S.f.esp) < 0) S.f.esp = "";
+    if (S.f.conv && S.conv.indexOf(S.f.conv) < 0) S.f.conv = "";
+    var espItems = sorted(S.esp).map(function (e) {
+      var n = S.medicos.filter(function (m) { return matches(m, S.f, "esp") && m.especialidade === e; }).length;
+      return { v: e, label: e + " (" + n + ")" };
+    });
+    var convItems = sorted(S.conv).map(function (c) {
+      var n = S.medicos.filter(function (m) { return matches(m, S.f, "conv") && m.convenios.indexOf(c) >= 0; }).length;
+      return { v: c, label: c + " (" + n + ")" };
+    });
+    setOptions($("flt-esp"), "Todas as especialidades", espItems, S.f.esp);
+    setOptions($("flt-conv"), "Todos os convênios", convItems, S.f.conv);
+  }
+
+  function fchip(label, value, onclick) {
+    return h("button", { type: "button", class: "fchip", onclick: onclick, "aria-label": "Remover filtro " + label + ": " + value },
+      h("b", { text: label + ":" }), " " + value, h("span", { "aria-hidden": "true", text: "×" }));
+  }
+
+  function rowEl(m) {
+    var del = S.delId === m.id;
+    var conv = sorted(m.convenios).sort(function (a, b) { return (b === S.f.conv) - (a === S.f.conv); });
+    var acts = del
+      ? [
+          h("span", { class: "ask", text: "Remover?" }),
+          h("button", { type: "button", class: "link danger", text: "Sim", onclick: function () { S.delId = null; persistDelete(m.id); toast("Médico removido"); } }),
+          h("button", { type: "button", class: "link", text: "Não", onclick: function () { S.delId = null; renderResults(); } })
+        ]
+      : [
+          h("button", { type: "button", class: "link", text: "Editar", "aria-label": "Editar " + m.nome, onclick: function () { startEdit(m); } }),
+          h("button", { type: "button", class: "link danger", text: "Remover", "aria-label": "Remover " + m.nome, onclick: function () { S.delId = m.id; renderResults(); } })
+        ];
+    return h("div", { class: "row" },
+      h("div", { class: "c-name" }, h("strong", { class: "name", text: m.nome })),
+      h("div", { class: "c-esp" }, m.especialidade
+        ? h("span", { class: "tag" + (m.especialidade === S.f.esp ? " match" : ""), text: m.especialidade })
+        : h("span", { class: "muted", text: "Sem especialidade" })),
+      h("div", { class: "c-conv" }, conv.length
+        ? h("div", { class: "chips" }, conv.map(function (c) { return h("span", { class: "chip" + (c === S.f.conv ? " match" : ""), text: c }); }))
+        : h("span", { class: "muted", text: "Nenhum convênio informado" })),
+      h("div", { class: "c-act writer" }, acts)
+    );
+  }
+
+  function renderResults() {
+    var box = $("results"), sum = $("summary");
+    box.replaceChildren(); sum.replaceChildren();
+    if (!S.docsSeen) { box.append(h("p", { class: "muted pad", text: "Carregando seus médicos…" })); return; }
+    if (!S.medicos.length) {
+      box.append(h("div", { class: "panel empty" },
+        h("h3", { text: "Nenhum médico cadastrado ainda" }),
+        h("p", { text: "Cadastre o primeiro médico com nome, especialidade e convênios aceitos. Depois é só filtrar aqui." }),
+        h("button", { type: "button", class: "btn writer", text: "Cadastrar médico", onclick: function () { go("cadastrar"); } })
+      ));
+      return;
+    }
+    var f = S.f;
+    var active = !!(f.esp || f.conv || f.q.trim());
+    var list = S.medicos.filter(function (m) { return matches(m, f); })
+      .sort(function (a, b) { return collator.compare(a.especialidade, b.especialidade) || collator.compare(a.nome, b.nome); });
+    var n = list.length;
+    sum.append(
+      h("span", { class: "big", text: n }),
+      h("span", { class: "count-text", text: active ? pl(n, "médico encontrado", "médicos encontrados") : pl(n, "médico cadastrado", "médicos cadastrados") })
+    );
+    var chips = [];
+    if (f.esp) chips.push(fchip("Especialidade", f.esp, function () { S.f.esp = ""; renderSearch(); }));
+    if (f.conv) chips.push(fchip("Convênio", f.conv, function () { S.f.conv = ""; renderSearch(); }));
+    if (f.q.trim()) chips.push(fchip("Nome", f.q.trim(), function () { S.f.q = ""; $("flt-q").value = ""; renderSearch(); }));
+    if (chips.length) sum.append(h("div", { class: "fchips" }, chips));
+    if (!n) {
+      box.append(h("div", { class: "panel empty" },
+        h("h3", { text: "Nenhum médico com esses filtros" }),
+        h("p", { text: "Tire um dos filtros para ver mais resultados, ou cadastre um médico novo." }),
+        h("button", { type: "button", class: "btn ghost", text: "Limpar filtros", onclick: clearFilters })
+      ));
+      return;
+    }
+    box.append(h("div", { class: "table" },
+      h("div", { class: "row head" },
+        h("div", { class: "c-name", text: "Médico" }),
+        h("div", { class: "c-esp", text: "Especialidade" }),
+        h("div", { class: "c-conv", text: "Convênios" }),
+        h("div", { class: "c-act" })
+      ),
+      list.map(rowEl)
+    ));
+  }
+
+  function renderSearch() { renderFilters(); renderResults(); }
+
+  function slug(s, i) { return "cv-" + i + "-" + norm(s).replace(/[^a-z0-9]+/g, "-"); }
+  function updConvCount() {
+    var n = S.form.conv.size;
+    $("conv-count").textContent = n ? "· " + n + " " + pl(n, "selecionado", "selecionados") : "";
+  }
+  function renderForm() {
+    var F = S.form;
+    $("form-title").textContent = F.id ? "Editar médico" : "Cadastrar médico";
+    $("f-save").textContent = F.id ? "Salvar alterações" : "Salvar médico";
+    $("f-cancel").hidden = !F.id;
+    var nome = $("f-nome");
+    if (nome.value !== F.nome) nome.value = F.nome;
+    var items = sorted(S.esp);
+    if (F.esp && items.indexOf(F.esp) < 0) items.push(F.esp);
+    setOptions($("f-esp"), "Selecione a especialidade", items.map(function (e) { return { v: e, label: e }; }), F.esp);
+    var g = $("f-conv");
+    var list = sorted(S.conv);
+    var sig = list.join("|");
+    if (g.dataset.sig !== sig) {
+      g.replaceChildren.apply(g, list.map(function (c, i) {
+        var id = slug(c, i);
+        return h("label", { class: "pick", for: id },
+          h("input", { type: "checkbox", id: id, value: c, checked: F.conv.has(c), onchange: function (ev) {
+            if (ev.target.checked) S.form.conv.add(c); else S.form.conv.delete(c);
+            updConvCount();
+          } }),
+          h("span", { text: c }));
+      }));
+      g.dataset.sig = sig;
+    }
+    g.querySelectorAll("input").forEach(function (i) { i.checked = F.conv.has(i.value); });
+    updConvCount();
+  }
+
+  function usage(kind, name) {
+    return S.medicos.filter(function (m) { return kind === "esp" ? m.especialidade === name : m.convenios.indexOf(name) >= 0; }).length;
+  }
+  function renderSettings() {
+    ["esp", "conv"].forEach(function (kind) {
+      var list = sorted(S[kind]);
+      $("cfg-" + kind + "-n").textContent = list.length + " " + pl(list.length, "item", "itens");
+      var box = $("cfg-" + kind + "-list");
+      box.replaceChildren();
+      if (!list.length) box.append(h("span", { class: "muted", text: "Lista vazia. Adicione um item acima." }));
+      list.forEach(function (name) {
+        box.append(h("span", { class: "cfg-chip" },
+          h("span", { text: name }),
+          h("button", { type: "button", class: "x writer", "aria-label": "Remover " + name, text: "×", onclick: function () { S.pending = { kind: kind, name: name }; renderSettings(); } })));
+      });
+      var cf = $("cfg-" + kind + "-confirm");
+      cf.replaceChildren();
+      if (S.pending && S.pending.kind === kind) {
+        var name = S.pending.name, n = usage(kind, name), detail;
+        if (kind === "esp") detail = n ? n + " " + pl(n, "médico está cadastrado", "médicos estão cadastrados") + " nessa especialidade e ficará sem especialidade." : "Nenhum médico usa essa especialidade.";
+        else detail = n ? n + " " + pl(n, "médico aceita", "médicos aceitam") + " esse convênio e ele será retirado do cadastro." : "Nenhum médico usa esse convênio.";
+        cf.append(h("div", { class: "confirm writer" },
+          h("p", {}, h("strong", { text: "Remover “" + name + "”? " }), detail),
+          h("div", { class: "actions" },
+            h("button", { type: "button", class: "btn danger", text: "Remover", onclick: confirmRemove }),
+            h("button", { type: "button", class: "btn ghost", text: "Cancelar", onclick: function () { S.pending = null; renderSettings(); } }))));
+      }
+    });
+  }
+
+  function renderAll() {
+    renderStatus();
+    renderSearch();
+    renderForm();
+    renderSettings();
+  }
+
+  /* ---------- Ações ---------- */
+  function resetForm() { S.form = { id: null, nome: "", esp: "", conv: new Set() }; $("f-err").textContent = ""; }
+  function startEdit(m) {
+    S.form = { id: m.id, nome: m.nome, esp: m.especialidade, conv: new Set(m.convenios) };
+    $("f-err").textContent = "";
+    renderForm();
+    go("cadastrar");
+    $("f-nome").focus();
+  }
+  async function saveForm(e) {
+    e.preventDefault();
+    var F = S.form, err = $("f-err");
+    var nome = F.nome.trim().replace(/\s+/g, " ");
+    err.textContent = "";
+    if (!nome) { err.textContent = "Informe o nome do médico."; $("f-nome").focus(); return; }
+    if (!F.esp) { err.textContent = "Escolha a especialidade."; $("f-esp").focus(); return; }
+    if (S.medicos.some(function (m) { return m.id !== F.id && norm(m.nome) === norm(nome) && m.especialidade === F.esp; })) {
+      err.textContent = "Esse médico já está cadastrado nessa especialidade. Use Editar na busca para alterá-lo.";
+      return;
+    }
+    var editing = !!F.id;
+    var ok = await persistDoctor({ id: F.id, nome: nome, especialidade: F.esp, convenios: sorted(Array.from(F.conv)) });
+    if (!ok) return;
+    toast(editing ? "Alterações salvas" : "Médico cadastrado");
+    resetForm(); renderForm();
+    if (editing) go("buscar"); else $("f-nome").focus();
+  }
+  function addItem(kind, e) {
+    e.preventDefault();
+    var inp = $("cfg-" + kind + "-in"), err = $("cfg-" + kind + "-err");
+    var v = inp.value.trim().replace(/\s+/g, " ");
+    err.textContent = "";
+    if (!v) return;
+    if (S[kind].some(function (x) { return norm(x) === norm(v); })) { err.textContent = "“" + v + "” já está na lista."; return; }
+    S[kind] = S[kind].concat([v]);
+    inp.value = "";
+    persistConfig();
+    renderAll();
+    toast("Adicionado: " + v);
+  }
+  function confirmRemove() {
+    var p = S.pending; if (!p) return;
+    S.pending = null;
+    S[p.kind] = S[p.kind].filter(function (x) { return x !== p.name; });
+    var changed = [];
+    S.medicos.forEach(function (m) {
+      if (p.kind === "esp" && m.especialidade === p.name) changed.push({ id: m.id, nome: m.nome, especialidade: "", convenios: m.convenios });
+      if (p.kind === "conv" && m.convenios.indexOf(p.name) >= 0) changed.push({ id: m.id, nome: m.nome, especialidade: m.especialidade, convenios: m.convenios.filter(function (c) { return c !== p.name; }) });
+    });
+    if (S.f[p.kind] === p.name) S.f[p.kind] = "";
+    if (p.kind === "esp" && S.form.esp === p.name) S.form.esp = "";
+    if (p.kind === "conv") S.form.conv.delete(p.name);
+    persistConfig();
+    changed.forEach(persistDoctor);
+    renderAll();
+    toast("Removido: " + p.name);
+  }
+
+  /* ---------- Abas ---------- */
+  function show(t) {
+    if (!TABS[t]) t = "buscar";
+    Object.keys(TABS).forEach(function (k) {
+      $(TABS[k]).hidden = k !== t;
+      var b = $("tab-" + k);
+      b.setAttribute("aria-selected", k === t ? "true" : "false");
+      b.tabIndex = k === t ? 0 : -1;
+    });
+  }
+  function go(t) {
+    show(t);
+    if (location.hash !== "#" + t) { try { location.hash = t; } catch (e) {} }
+  }
+
+  /* ---------- Eventos ---------- */
+  document.querySelectorAll(".tab").forEach(function (b) {
+    b.addEventListener("click", function () { go(b.dataset.tab); });
+    b.addEventListener("keydown", function (ev) {
+      var keys = Object.keys(TABS), i = keys.indexOf(b.dataset.tab);
+      if (ev.key === "ArrowRight" || ev.key === "ArrowLeft") {
+        var n = keys[(i + (ev.key === "ArrowRight" ? 1 : keys.length - 1)) % keys.length];
+        go(n); $("tab-" + n).focus();
+      }
+    });
+  });
+  window.addEventListener("hashchange", function () { show(location.hash.slice(1)); });
+
+  $("flt-esp").addEventListener("change", function (e) { S.f.esp = e.target.value; renderSearch(); });
+  $("flt-conv").addEventListener("change", function (e) { S.f.conv = e.target.value; renderSearch(); });
+  $("flt-q").addEventListener("input", function (e) { S.f.q = e.target.value; renderSearch(); });
+  $("flt-clear").addEventListener("click", clearFilters);
+
+  $("f-nome").addEventListener("input", function (e) { S.form.nome = e.target.value; });
+  $("f-esp").addEventListener("change", function (e) { S.form.esp = e.target.value; });
+  $("conv-all").addEventListener("click", function () { S.form.conv = new Set(S.conv); renderForm(); });
+  $("conv-none").addEventListener("click", function () { S.form.conv = new Set(); renderForm(); });
+  $("form").addEventListener("submit", saveForm);
+  $("f-cancel").addEventListener("click", function () { resetForm(); renderForm(); go("buscar"); });
+  $("add-esp").addEventListener("submit", function (e) { addItem("esp", e); });
+  $("add-conv").addEventListener("submit", function (e) { addItem("conv", e); });
+
+  $("login-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    $("login-error").textContent = "";
+    $("login-submit").disabled = true;
+    $("login-submit").textContent = "Entrando…";
+    try {
+      var username = $("login-username").value.trim().toLowerCase();
+      // Se foi informado um e-mail real, use-o diretamente. Se foi informado apenas
+      // um nome de usuário, converta para o identificador interno convencionado.
+      var loginEmail = username.indexOf("@") >= 0 ? username : username + "@buscamedica.test";
+      var r = await supabase.auth.signInWithPassword({ email: loginEmail, password: $("login-password").value });
+      if (r.error) { showLogin("Não foi possível entrar. Confira o usuário e a senha."); return; }
+      currentUser = r.data.user;
+      await initializeUser();
+    } catch (err) {
+      console.error(err);
+      try { await supabase.auth.signOut(); } catch (_) {}
+      currentUser = null;
+      showLogin("Erro ao carregar seus dados. Confira se as tabelas e permissões do Supabase foram configuradas.");
+    }
+  });
+  show(location.hash.slice(1) || "buscar");
+  renderAll();
+  connect();
+})();
+</script>
+
+</body></html>
