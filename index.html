@@ -93,6 +93,8 @@ p { margin: 0; }
 .status[data-mode="cloud"]::before { background: var(--accent); }
 .status[data-mode="local"]::before { background: #C98A12; }
 .status[data-mode="error"]::before { background: var(--danger); }
+.top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+#logout-btn { min-height: 36px; padding: 7px 12px; }
 
 .tabs { display: flex; gap: 4px; margin: 20px 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
 .tab { appearance: none; background: none; border: 0; color: var(--muted); font: 600 14.5px var(--f-body); padding: 10px 14px; margin-bottom: -1px; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; }
@@ -224,7 +226,10 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
         <p class="sub">Seus médicos por especialidade e convênio</p>
       </div>
     </div>
-    <span class="status" id="status" role="status" data-mode="loading">Conectando…</span>
+    <div class="top-actions">
+      <span class="status" id="status" role="status" data-mode="loading">Conectando…</span>
+      <button id="logout-btn" class="btn ghost" type="button" title="Sair e entrar com outro usuário">Sair</button>
+    </div>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Seções">
@@ -777,6 +782,31 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
   $("f-cancel").addEventListener("click", function () { resetForm(); renderForm(); go("buscar"); });
   $("add-esp").addEventListener("submit", function (e) { addItem("esp", e); });
   $("add-conv").addEventListener("submit", function (e) { addItem("conv", e); });
+
+  $("logout-btn").addEventListener("click", async function () {
+    var btn = $("logout-btn");
+    btn.disabled = true;
+    btn.textContent = "Saindo…";
+    try {
+      // Encerra somente a sessão deste navegador, sem desconectar o mesmo usuário em outros dispositivos.
+      var result = await supabase.auth.signOut({ scope: "local" });
+      if (result.error) throw result.error;
+      if (realtimeChannel) {
+        try { await supabase.removeChannel(realtimeChannel); } catch (_) {}
+        realtimeChannel = null;
+      }
+      currentUser = null;
+      $("login-username").value = "";
+      $("login-password").value = "";
+      showLogin("Você saiu da conta. Entre com outro usuário.");
+    } catch (err) {
+      console.error(err);
+      toast("Não foi possível sair. Tente novamente.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Sair";
+    }
+  });
 
   $("login-form").addEventListener("submit", async function (e) {
     e.preventDefault();
