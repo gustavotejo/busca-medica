@@ -236,6 +236,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     <button class="tab" role="tab" id="tab-buscar" data-tab="buscar" aria-controls="p-buscar" aria-selected="true">Buscar</button>
     <button class="tab" role="tab" id="tab-cadastrar" data-tab="cadastrar" aria-controls="p-cadastrar" aria-selected="false">Cadastrar médico</button>
     <button class="tab" role="tab" id="tab-configuracoes" data-tab="configuracoes" aria-controls="p-config" aria-selected="false">Configurações</button>
+    <button class="tab" role="tab" id="tab-auditoria" data-tab="auditoria" aria-controls="p-auditoria" aria-selected="false" hidden>Auditoria</button>
   </nav>
 
   <section id="p-buscar" role="tabpanel" aria-labelledby="tab-buscar">
@@ -272,8 +273,12 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
         <input type="text" id="f-nome" autocomplete="off" placeholder="Ex.: Dra. Maria Souza">
       </div>
       <div class="field">
-        <label for="f-esp">Especialidade</label>
-        <select id="f-esp"></select>
+        <div class="legend" id="lg-esp">Especialidades (selecione uma ou mais) <span id="esp-count"></span></div>
+        <div class="bulk">
+          <button type="button" class="link" id="esp-all">Marcar todas</button>
+          <button type="button" class="link" id="esp-none">Desmarcar todas</button>
+        </div>
+        <div class="picks" id="f-esp" role="group" aria-labelledby="lg-esp"></div>
       </div>
       <div class="field">
         <div class="legend" id="lg-conv">Convênios aceitos <span id="conv-count"></span></div>
@@ -318,6 +323,9 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
       </section>
     </div>
   </section>
+  <section id="p-auditoria" role="tabpanel" aria-labelledby="tab-auditoria" hidden>
+    <div class="panel"><h2>Histórico de alterações</h2><p class="muted" id="audit-note">Histórico permanente registrado no banco de dados. Visível somente para administradores.</p><div id="audit-list" aria-live="polite">Abra esta aba para carregar o histórico.</div></div>
+  </section>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"><span></span></div>
 
@@ -326,14 +334,14 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
 (function () {
   var DEF_ESP = ["Endocrinologista", "Cardiologista", "Geriatra", "Nefrologista", "Reumatologista", "Clínico Geral", "Infectologista", "Psicologia", "Urologista", "Gastroenterologista", "Ortopedista", "Psiquiatra", "Nutricionista", "Angiologista", "Ginecologista", "Dermatologista"];
   var DEF_CONV = ["AFRAFEP", "ASSEFAZ", "BRADESCO", "CAMED", "CAPESAUDE", "CASEMBRAPA", "CASSI", "COMSEDER", "CONAB", "FACHESF", "FUNASA", "FUSMAN", "FUSEX", "GEAP", "AMIL", "PETROBRAS", "POSTAL SAUDE", "SAÚDE CAIXA", "SULAMERICA", "SMILE", "UNIMED"];
-  var TABS = { buscar: "p-buscar", cadastrar: "p-cadastrar", configuracoes: "p-config" };
+  var TABS = { buscar: "p-buscar", cadastrar: "p-cadastrar", configuracoes: "p-config", auditoria: "p-auditoria" };
 
   var S = {
     esp: DEF_ESP.slice(), conv: DEF_CONV.slice(), medicos: [],
     docsSeen: false, mode: "loading", canWrite: true,
     f: { esp: "", conv: "", q: "" },
-    form: { id: null, nome: "", esp: "", conv: new Set() },
-    pending: null, delId: null
+    form: { id: null, nome: "", esp: new Set(), conv: new Set() },
+    pending: null, delId: null, isAdmin: false, auditLoading: false
   };
 
   function $(id) { return document.getElementById(id); }
@@ -386,7 +394,8 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
   var realtimeChannel = null;
 
   function cleanDoc(id, d) {
-    return { id: id, nome: String(d.nome || ""), especialidade: String(d.especialidade || ""), convenios: Array.isArray(d.convenios) ? d.convenios.map(String) : [] };
+    var esps = Array.isArray(d.especialidades) ? d.especialidades.map(String) : (d.especialidade ? [String(d.especialidade)] : []);
+    return { id: id, nome: String(d.nome || ""), especialidades: esps, especialidade: esps[0] || "", convenios: Array.isArray(d.convenios) ? d.convenios.map(String) : [] };
   }
   function showLogin(message) {
     $("login-screen").hidden = false;
@@ -415,7 +424,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
   }
   async function persistDoctor(m) {
     return enqueue(async function () {
-      var data = { nome: m.nome, especialidade: m.especialidade, convenios: m.convenios, updated_at: new Date().toISOString(), updated_by: currentUser.id };
+      var data = { nome: m.nome, especialidade: (m.especialidades || [])[0] || "", especialidades: m.especialidades || [], convenios: m.convenios, updated_at: new Date().toISOString(), updated_by: currentUser.id };
       var r = m.id ? await supabase.from("medicos").update(data).eq("id", m.id).select().single() : await supabase.from("medicos").insert(data).select().single();
       if (r.error) throw r.error;
       if (r.data) {
@@ -439,7 +448,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
   async function loadCloudData() {
     var results = await Promise.all([
       supabase.from("app_config").select("especialidades,convenios").eq("id", 1).single(),
-      supabase.from("medicos").select("id,nome,especialidade,convenios,created_at,updated_at,updated_by").order("nome")
+      supabase.from("medicos").select("id,nome,especialidade,especialidades,convenios,created_at,updated_at,updated_by").order("nome")
     ]);
     if (results[0].error) throw results[0].error;
     if (results[1].error) throw results[1].error;
@@ -465,6 +474,44 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
       showLogin("Não foi possível conectar. Confira a configuração do Supabase e tente novamente.");
     }
   }
+  function auditDescription(a) {
+    var oldData = a.dados_anteriores || {}, newData = a.dados_novos || {};
+    if (a.tabela === "medicos") {
+      var d = a.operacao === "DELETE" ? oldData : newData;
+      return (d.nome || "Médico") + (a.operacao === "INSERT" ? " · cadastro criado" : a.operacao === "UPDATE" ? " · cadastro alterado" : " · cadastro excluído");
+    }
+    if (a.tabela === "especialidades" || a.tabela === "convenios") {
+      var item = (newData.item || oldData.item || "");
+      return (a.tabela === "especialidades" ? "Especialidade" : "Convênio") + (a.operacao === "ADICIONAR" ? " adicionada: " : " removido: ") + item;
+    }
+    return "Listas gerais de especialidades/convênios " + (a.operacao === "INSERT" ? "criadas" : a.operacao === "DELETE" ? "excluídas" : "atualizadas");
+  }
+  async function loadAudit() {
+    if (!S.isAdmin || S.auditLoading) return;
+    var box = $("audit-list");
+    if (!box) return;
+    S.auditLoading = true;
+    box.textContent = "Carregando histórico…";
+    try {
+      var r = await supabase.from("medicos_audit").select("id,tabela,operacao,registro_id,realizado_em,realizado_por,dados_anteriores,dados_novos").order("realizado_em", { ascending: false }).limit(200);
+      if (r.error) throw r.error;
+      box.replaceChildren();
+      if (!r.data || !r.data.length) { box.textContent = "Ainda não há alterações registradas."; return; }
+      r.data.forEach(function (a) {
+        var when = a.realizado_em ? new Date(a.realizado_em).toLocaleString("pt-BR") : "Data não informada";
+        var who = a.realizado_por || "Usuário não identificado";
+        box.append(h("div", { class: "cfg-chip", style: "display:block;margin:8px 0;padding:12px" },
+          h("strong", { text: auditDescription(a) }),
+          h("div", { text: when + " · " + who }),
+          h("small", { text: "Origem: " + a.tabela + " · Operação: " + a.operacao + (a.registro_id ? " · Registro: " + a.registro_id : "") })
+        ));
+      });
+    } catch (e) {
+      console.error(e);
+      box.textContent = "Não foi possível carregar o histórico. Confirme se o SQL de auditoria foi executado e se sua conta tem perfil de administrador.";
+    } finally { S.auditLoading = false; }
+  }
+
   async function initializeUser() {
     var member = await supabase.from("team_members").select("role").eq("user_id", currentUser.id).maybeSingle();
     if (member.error) throw member.error;
@@ -474,13 +521,15 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
       showLogin("Seu usuário ainda não foi incluído na equipe. Peça ao administrador para conceder acesso.");
       return;
     }
-    S.canWrite = member.data.role === "admin" || member.data.role === "editor";
+    S.isAdmin = member.data.role === "admin";
+    S.canWrite = S.isAdmin || member.data.role === "editor";
+    $("tab-auditoria").hidden = !S.isAdmin;
     showApp();
     await loadCloudData();
     if (realtimeChannel) await supabase.removeChannel(realtimeChannel);
     realtimeChannel = supabase.channel("busca-medica-sync")
       .on("postgres_changes", { event: "*", schema: "public", table: "medicos" }, async function () {
-        try { var r = await supabase.from("medicos").select("id,nome,especialidade,convenios,created_at,updated_at,updated_by").order("nome"); if (!r.error) { S.medicos = (r.data || []).map(function (m) { return cleanDoc(m.id, m); }); renderAll(); } } catch (e) { console.error(e); }
+        try { var r = await supabase.from("medicos").select("id,nome,especialidade,especialidades,convenios,created_at,updated_at,updated_by").order("nome"); if (!r.error) { S.medicos = (r.data || []).map(function (m) { return cleanDoc(m.id, m); }); renderAll(); } } catch (e) { console.error(e); }
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "app_config" }, async function () {
         try { var r = await supabase.from("app_config").select("especialidades,convenios").eq("id", 1).single(); if (!r.error && r.data) { S.esp = (r.data.especialidades || []).map(String); S.conv = (r.data.convenios || []).map(String); renderAll(); } } catch (e) { console.error(e); }
@@ -490,7 +539,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
 
   /* ---------- Filtros ---------- */
   function matches(m, f, skip) {
-    if (skip !== "esp" && f.esp && m.especialidade !== f.esp) return false;
+    if (skip !== "esp" && f.esp && (m.especialidades || [m.especialidade]).indexOf(f.esp) < 0) return false;
     if (skip !== "conv" && f.conv && m.convenios.indexOf(f.conv) < 0) return false;
     if (f.q && norm(m.nome).indexOf(norm(f.q)) < 0) return false;
     return true;
@@ -524,7 +573,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     if (S.f.esp && S.esp.indexOf(S.f.esp) < 0) S.f.esp = "";
     if (S.f.conv && S.conv.indexOf(S.f.conv) < 0) S.f.conv = "";
     var espItems = sorted(S.esp).map(function (e) {
-      var n = S.medicos.filter(function (m) { return matches(m, S.f, "esp") && m.especialidade === e; }).length;
+      var n = S.medicos.filter(function (m) { return matches(m, S.f, "esp") && (m.especialidades || [m.especialidade]).indexOf(e) >= 0; }).length;
       return { v: e, label: e + " (" + n + ")" };
     });
     var convItems = sorted(S.conv).map(function (c) {
@@ -555,8 +604,8 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
         ];
     return h("div", { class: "row" },
       h("div", { class: "c-name" }, h("strong", { class: "name", text: m.nome })),
-      h("div", { class: "c-esp" }, m.especialidade
-        ? h("span", { class: "tag" + (m.especialidade === S.f.esp ? " match" : ""), text: m.especialidade })
+      h("div", { class: "c-esp" }, (m.especialidades || [m.especialidade]).length
+        ? h("div", { class: "chips" }, (m.especialidades || [m.especialidade]).map(function (e) { return h("span", { class: "tag" + (e === S.f.esp ? " match" : ""), text: e }); }))
         : h("span", { class: "muted", text: "Sem especialidade" })),
       h("div", { class: "c-conv" }, conv.length
         ? h("div", { class: "chips" }, conv.map(function (c) { return h("span", { class: "chip" + (c === S.f.conv ? " match" : ""), text: c }); }))
@@ -617,6 +666,10 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     var n = S.form.conv.size;
     $("conv-count").textContent = n ? "· " + n + " " + pl(n, "selecionado", "selecionados") : "";
   }
+  function updEspCount() {
+    var n = S.form.esp.size;
+    $("esp-count").textContent = n ? "· " + n + " " + pl(n, "selecionada", "selecionadas") : "";
+  }
   function renderForm() {
     var F = S.form;
     $("form-title").textContent = F.id ? "Editar médico" : "Cadastrar médico";
@@ -624,9 +677,17 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     $("f-cancel").hidden = !F.id;
     var nome = $("f-nome");
     if (nome.value !== F.nome) nome.value = F.nome;
-    var items = sorted(S.esp);
-    if (F.esp && items.indexOf(F.esp) < 0) items.push(F.esp);
-    setOptions($("f-esp"), "Selecione a especialidade", items.map(function (e) { return { v: e, label: e }; }), F.esp);
+    var eg = $("f-esp"), espList = sorted(S.esp), espSig = espList.join("|");
+    if (eg.dataset.sig !== espSig) {
+      eg.replaceChildren.apply(eg, espList.map(function (e, i) {
+        var id = "esp-pick-" + i;
+        return h("label", { class: "pick", for: id },
+          h("input", { type: "checkbox", id: id, value: e, checked: F.esp.has(e), onchange: function (ev) { if (ev.target.checked) S.form.esp.add(e); else S.form.esp.delete(e); updEspCount(); } }),
+          h("span", { text: e }));
+      })); eg.dataset.sig = espSig;
+    }
+    eg.querySelectorAll("input").forEach(function (i) { i.checked = F.esp.has(i.value); });
+    updEspCount();
     var g = $("f-conv");
     var list = sorted(S.conv);
     var sig = list.join("|");
@@ -647,7 +708,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
   }
 
   function usage(kind, name) {
-    return S.medicos.filter(function (m) { return kind === "esp" ? m.especialidade === name : m.convenios.indexOf(name) >= 0; }).length;
+    return S.medicos.filter(function (m) { return kind === "esp" ? (m.especialidades || [m.especialidade]).indexOf(name) >= 0 : m.convenios.indexOf(name) >= 0; }).length;
   }
   function renderSettings() {
     ["esp", "conv"].forEach(function (kind) {
@@ -665,7 +726,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
       cf.replaceChildren();
       if (S.pending && S.pending.kind === kind) {
         var name = S.pending.name, n = usage(kind, name), detail;
-        if (kind === "esp") detail = n ? n + " " + pl(n, "médico está cadastrado", "médicos estão cadastrados") + " nessa especialidade e ficará sem especialidade." : "Nenhum médico usa essa especialidade.";
+        if (kind === "esp") detail = n ? n + " " + pl(n, "médico está cadastrado", "médicos estão cadastrados") + " nessa especialidade, que será retirada dos cadastros." : "Nenhum médico usa essa especialidade.";
         else detail = n ? n + " " + pl(n, "médico aceita", "médicos aceitam") + " esse convênio e ele será retirado do cadastro." : "Nenhum médico usa esse convênio.";
         cf.append(h("div", { class: "confirm writer" },
           h("p", {}, h("strong", { text: "Remover “" + name + "”? " }), detail),
@@ -684,9 +745,9 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
   }
 
   /* ---------- Ações ---------- */
-  function resetForm() { S.form = { id: null, nome: "", esp: "", conv: new Set() }; $("f-err").textContent = ""; }
+  function resetForm() { S.form = { id: null, nome: "", esp: new Set(), conv: new Set() }; $("f-err").textContent = ""; }
   function startEdit(m) {
-    S.form = { id: m.id, nome: m.nome, esp: m.especialidade, conv: new Set(m.convenios) };
+    S.form = { id: m.id, nome: m.nome, esp: new Set(m.especialidades || [m.especialidade].filter(Boolean)), conv: new Set(m.convenios) };
     $("f-err").textContent = "";
     renderForm();
     go("cadastrar");
@@ -698,13 +759,9 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     var nome = F.nome.trim().replace(/\s+/g, " ");
     err.textContent = "";
     if (!nome) { err.textContent = "Informe o nome do médico."; $("f-nome").focus(); return; }
-    if (!F.esp) { err.textContent = "Escolha a especialidade."; $("f-esp").focus(); return; }
-    if (S.medicos.some(function (m) { return m.id !== F.id && norm(m.nome) === norm(nome) && m.especialidade === F.esp; })) {
-      err.textContent = "Esse médico já está cadastrado nessa especialidade. Use Editar na busca para alterá-lo.";
-      return;
-    }
+    if (!F.esp.size) { err.textContent = "Escolha pelo menos uma especialidade."; $("f-esp").focus(); return; }
     var editing = !!F.id;
-    var ok = await persistDoctor({ id: F.id, nome: nome, especialidade: F.esp, convenios: sorted(Array.from(F.conv)) });
+    var ok = await persistDoctor({ id: F.id, nome: nome, especialidades: sorted(Array.from(F.esp)), convenios: sorted(Array.from(F.conv)) });
     if (!ok) return;
     toast(editing ? "Alterações salvas" : "Médico cadastrado");
     resetForm(); renderForm();
@@ -729,11 +786,11 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     S[p.kind] = S[p.kind].filter(function (x) { return x !== p.name; });
     var changed = [];
     S.medicos.forEach(function (m) {
-      if (p.kind === "esp" && m.especialidade === p.name) changed.push({ id: m.id, nome: m.nome, especialidade: "", convenios: m.convenios });
-      if (p.kind === "conv" && m.convenios.indexOf(p.name) >= 0) changed.push({ id: m.id, nome: m.nome, especialidade: m.especialidade, convenios: m.convenios.filter(function (c) { return c !== p.name; }) });
+      if (p.kind === "esp" && (m.especialidades || [m.especialidade]).indexOf(p.name) >= 0) { var remaining = (m.especialidades || [m.especialidade]).filter(function (e) { return e !== p.name; }); changed.push({ id: m.id, nome: m.nome, especialidades: remaining, convenios: m.convenios }); }
+      if (p.kind === "conv" && m.convenios.indexOf(p.name) >= 0) changed.push({ id: m.id, nome: m.nome, especialidades: m.especialidades || [m.especialidade].filter(Boolean), convenios: m.convenios.filter(function (c) { return c !== p.name; }) });
     });
     if (S.f[p.kind] === p.name) S.f[p.kind] = "";
-    if (p.kind === "esp" && S.form.esp === p.name) S.form.esp = "";
+    if (p.kind === "esp") S.form.esp.delete(p.name);
     if (p.kind === "conv") S.form.conv.delete(p.name);
     persistConfig();
     changed.forEach(persistDoctor);
@@ -743,13 +800,14 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
 
   /* ---------- Abas ---------- */
   function show(t) {
-    if (!TABS[t]) t = "buscar";
+    if (!TABS[t] || (t === "auditoria" && !S.isAdmin)) t = "buscar";
     Object.keys(TABS).forEach(function (k) {
       $(TABS[k]).hidden = k !== t;
       var b = $("tab-" + k);
       b.setAttribute("aria-selected", k === t ? "true" : "false");
       b.tabIndex = k === t ? 0 : -1;
     });
+    if (t === "auditoria") loadAudit();
   }
   function go(t) {
     show(t);
@@ -775,7 +833,8 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
   $("flt-clear").addEventListener("click", clearFilters);
 
   $("f-nome").addEventListener("input", function (e) { S.form.nome = e.target.value; });
-  $("f-esp").addEventListener("change", function (e) { S.form.esp = e.target.value; });
+  $("esp-all").addEventListener("click", function () { S.form.esp = new Set(S.esp); renderForm(); });
+  $("esp-none").addEventListener("click", function () { S.form.esp = new Set(); renderForm(); });
   $("conv-all").addEventListener("click", function () { S.form.conv = new Set(S.conv); renderForm(); });
   $("conv-none").addEventListener("click", function () { S.form.conv = new Set(); renderForm(); });
   $("form").addEventListener("submit", saveForm);
@@ -795,7 +854,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
         try { await supabase.removeChannel(realtimeChannel); } catch (_) {}
         realtimeChannel = null;
       }
-      currentUser = null;
+      currentUser = null; S.isAdmin = false; $("tab-auditoria").hidden = true;
       $("login-username").value = "";
       $("login-password").value = "";
       showLogin("Você saiu da conta. Entre com outro usuário.");
