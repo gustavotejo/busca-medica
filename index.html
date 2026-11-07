@@ -111,11 +111,11 @@ p { margin: 0; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
 .field { display: grid; gap: 6px; min-width: 0; }
 .field > label, .legend { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-input[type="text"], select {
+input[type="text"], input[type="email"], select {
   width: 100%; min-height: 44px; font: 500 16px var(--f-body); color: var(--ink);
   background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
 }
-input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
+input[type="text"]::placeholder, input[type="email"]::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
 .btn { font: 600 14.5px var(--f-body); border-radius: 10px; padding: 10px 16px; min-height: 44px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
 .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
 .btn.ghost:hover { border-color: var(--muted); }
@@ -157,11 +157,30 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
 .c-name { grid-area: name; min-width: 0; }
 .c-esp { grid-area: esp; min-width: 0; }
 .c-conv { grid-area: conv; min-width: 0; }
+.c-det { grid-area: det; min-width: 0; }
 .c-act { grid-area: act; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 2px; }
+.row.open { grid-template-areas: "name esp conv act" "det det det det"; }
+.meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.details { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 12px; }
+.dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 12px 20px; margin: 0; }
+.dl > div { min-width: 0; }
+.dl dt { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.dl dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.dl a { color: var(--accent-text); font-weight: 600; text-decoration: none; }
+.dl a:hover { text-decoration: underline; }
+.obs { white-space: pre-wrap; overflow-wrap: anywhere; }
 .name { font-size: 15.5px; font-weight: 600; overflow-wrap: anywhere; }
 .ask { font-size: 13px; color: var(--danger); font-weight: 600; padding-right: 2px; }
 .empty { text-align: center; padding: 36px 20px; display: grid; gap: 10px; justify-items: center; }
 .empty p { max-width: 46ch; color: var(--muted); }
+
+/* Informações adicionais (formulário) */
+.sect { border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 14px; }
+.sect h3 { font-size: 16px; }
+.g2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+textarea { width: 100%; min-height: 92px; resize: vertical; font: 500 16px var(--f-body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
+.hint { font-size: 12.5px; color: var(--muted); }
 
 /* Cadastrar */
 .form { max-width: 760px; display: grid; gap: 18px; }
@@ -179,8 +198,9 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
 .cfg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; align-items: start; }
 .cfg-grid .panel { display: grid; gap: 14px; min-width: 0; }
 .cfg-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.add { display: flex; gap: 8px; }
-.add input { flex: 1; min-width: 0; }
+.add { display: flex; flex-wrap: wrap; gap: 8px; }
+.add input { flex: 1 1 160px; min-width: 0; }
+.add select { width: auto; flex: 0 1 140px; min-width: 0; }
 .cfg-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-weight: 500; }
 .cfg-chip .x { width: 24px; height: 24px; border-radius: 50%; border: 0; background: none; color: var(--muted); font-size: 17px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
 .cfg-chip .x:hover { background: var(--danger-soft); color: var(--danger); }
@@ -199,6 +219,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
   .search { grid-template-columns: minmax(0, 1fr); }
   .filters { position: static; }
   .row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name act" "esp esp" "conv conv"; padding: 14px; }
+  .row.open { grid-template-areas: "name act" "esp esp" "conv conv" "det det"; }
   .row.head { display: none; }
   .c-act { justify-content: flex-end; }
 }
@@ -252,8 +273,8 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
           <select id="flt-conv"></select>
         </div>
         <div class="field">
-          <label for="flt-q">Nome do médico</label>
-          <input type="text" id="flt-q" autocomplete="off" placeholder="Digite parte do nome">
+          <label for="flt-q">Nome ou CRM</label>
+          <input type="text" id="flt-q" autocomplete="off" placeholder="Digite parte do nome ou CRM">
         </div>
         <button type="button" class="btn ghost" id="flt-clear">Limpar filtros</button>
       </aside>
@@ -288,6 +309,12 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
         </div>
         <div class="picks" id="f-conv" role="group" aria-labelledby="lg-conv"></div>
       </div>
+      <div class="sect">
+        <h3>Informações adicionais <span class="muted" style="font-weight:500;font-size:13px">(opcional)</span></h3>
+        <p class="hint" id="f-campos-hint" hidden>Nenhum campo adicional definido. Você pode criar campos na aba Configurações.</p>
+        <div class="g2" id="f-campos"></div>
+        <div class="field"><label for="f-obs">Observações</label><textarea id="f-obs" maxlength="2000" placeholder="Dias e horários, valor da consulta particular, quem indicou, etc."></textarea></div>
+      </div>
       <p class="err" id="f-err" role="alert"></p>
       <div class="actions">
         <button class="btn" type="submit" id="f-save">Salvar médico</button>
@@ -321,6 +348,20 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
         <div id="cfg-conv-confirm"></div>
         <div class="chips" id="cfg-conv-list"></div>
       </section>
+      <section class="panel" aria-labelledby="h-campos">
+        <div class="cfg-head"><h2 id="h-campos">Informações adicionais</h2><span class="muted" id="cfg-campos-n"></span></div>
+        <p class="hint">Campos que aparecem no cadastro de cada médico (a observação geral está sempre incluída). Se um médico não tiver o dado preenchido, o campo simplesmente não aparece na consulta.</p>
+        <form class="add writer" id="add-campos" novalidate>
+          <label class="sr" for="cfg-campos-in">Nome do novo campo</label>
+          <input type="text" id="cfg-campos-in" maxlength="60" autocomplete="off" placeholder="Nome do campo (ex.: Horário)">
+          <label class="sr" for="cfg-campos-tipo">Tipo do campo</label>
+          <select id="cfg-campos-tipo"><option value="texto">Texto</option><option value="telefone">Telefone</option><option value="whatsapp">WhatsApp</option><option value="email">E-mail</option></select>
+          <button class="btn" type="submit">Adicionar</button>
+        </form>
+        <p class="err" id="cfg-campos-err"></p>
+        <div id="cfg-campos-confirm"></div>
+        <div class="chips" id="cfg-campos-list"></div>
+      </section>
     </div>
   </section>
   <section id="p-auditoria" role="tabpanel" aria-labelledby="tab-auditoria" hidden>
@@ -334,16 +375,52 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
 (function () {
   var DEF_ESP = ["Endocrinologista", "Cardiologista", "Geriatra", "Nefrologista", "Reumatologista", "Clínico Geral", "Infectologista", "Psicologia", "Urologista", "Gastroenterologista", "Ortopedista", "Psiquiatra", "Nutricionista", "Angiologista", "Ginecologista", "Dermatologista"];
   var DEF_CONV = ["AFRAFEP", "ASSEFAZ", "BRADESCO", "CAMED", "CAPESAUDE", "CASEMBRAPA", "CASSI", "COMSEDER", "CONAB", "FACHESF", "FUNASA", "FUSMAN", "FUSEX", "GEAP", "AMIL", "PETROBRAS", "POSTAL SAUDE", "SAÚDE CAIXA", "SULAMERICA", "SMILE", "UNIMED"];
+  var TIPOS = { texto: "Texto", telefone: "Telefone", whatsapp: "WhatsApp", email: "E-mail" };
+  var DEF_CAMPOS = [
+    { id: "crm", rotulo: "CRM", tipo: "texto" },
+    { id: "telefone", rotulo: "Telefone", tipo: "telefone" },
+    { id: "whatsapp", rotulo: "WhatsApp", tipo: "whatsapp" },
+    { id: "email", rotulo: "E-mail", tipo: "email" },
+    { id: "endereco", rotulo: "Endereço / local de atendimento", tipo: "texto" }
+  ];
+  function cloneCampos(a) { return a.map(function (c) { return { id: c.id, rotulo: c.rotulo, tipo: c.tipo }; }); }
+  function cleanCampos(a) {
+    return (Array.isArray(a) ? a : []).map(function (c) {
+      c = c || {};
+      return { id: String(c.id || ""), rotulo: String(c.rotulo || "").trim(), tipo: TIPOS[c.tipo] ? c.tipo : "texto" };
+    }).filter(function (c) { return c.id && c.rotulo; });
+  }
+  function newCampoId() { return "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
   var TABS = { buscar: "p-buscar", cadastrar: "p-cadastrar", configuracoes: "p-config", auditoria: "p-auditoria" };
 
   var S = {
-    esp: DEF_ESP.slice(), conv: DEF_CONV.slice(), medicos: [],
+    esp: DEF_ESP.slice(), conv: DEF_CONV.slice(), campos: cloneCampos(DEF_CAMPOS), pendingCampo: null, medicos: [],
     docsSeen: false, mode: "loading", canWrite: true,
     f: { esp: "", conv: "", q: "" },
-    form: { id: null, nome: "", esp: new Set(), conv: new Set() },
+    form: { id: null, nome: "", esp: new Set(), conv: new Set(), info: emptyInfo() }, openId: null,
     pending: null, delId: null, isAdmin: false, auditLoading: false
   };
 
+  var LEGACY_KEYS = ["crm", "telefone", "whatsapp", "email", "endereco"];
+  function emptyInfo() { return { observacoes: "", campos: {} }; }
+  function cleanInfo(raw) {
+    var o = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+    var campos = {};
+    if (o.campos && typeof o.campos === "object" && !Array.isArray(o.campos)) {
+      Object.keys(o.campos).forEach(function (k) { if (o.campos[k] != null && String(o.campos[k]).trim()) campos[k] = String(o.campos[k]); });
+    }
+    LEGACY_KEYS.forEach(function (k) { if (campos[k] == null && o[k] != null && String(o[k]).trim()) campos[k] = String(o[k]); });
+    return { observacoes: o.observacoes == null ? "" : String(o.observacoes), campos: campos };
+  }
+  function crmText(m) {
+    return S.campos.filter(function (c) { return norm(c.rotulo) === "crm"; }).map(function (c) { return (m.info && m.info.campos[c.id]) || ""; }).join(" ");
+  }
+  function waLink(v) {
+    var d = String(v).replace(/\D+/g, "");
+    if (d.length < 10) return null;
+    if (d.length <= 11) d = "55" + d;
+    return "https://wa.me/" + d;
+  }
   function $(id) { return document.getElementById(id); }
   function norm(s) { return String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim(); }
   var collator = new Intl.Collator("pt-BR", { sensitivity: "base" });
@@ -395,7 +472,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
 
   function cleanDoc(id, d) {
     var esps = Array.isArray(d.especialidades) ? d.especialidades.map(String) : (d.especialidade ? [String(d.especialidade)] : []);
-    return { id: id, nome: String(d.nome || ""), especialidades: esps, especialidade: esps[0] || "", convenios: Array.isArray(d.convenios) ? d.convenios.map(String) : [] };
+    return { id: id, nome: String(d.nome || ""), especialidades: esps, especialidade: esps[0] || "", convenios: Array.isArray(d.convenios) ? d.convenios.map(String) : [], info: cleanInfo(d.info_adicional) };
   }
   function showLogin(message) {
     $("login-screen").hidden = false;
@@ -417,14 +494,14 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
   }
   async function persistConfig() {
     return enqueue(async function () {
-      var r = await supabase.from("app_config").upsert({ id: 1, especialidades: S.esp, convenios: S.conv, updated_at: new Date().toISOString(), updated_by: currentUser.id });
+      var r = await supabase.from("app_config").upsert({ id: 1, especialidades: S.esp, convenios: S.conv, campos_adicionais: S.campos, updated_at: new Date().toISOString(), updated_by: currentUser.id });
       if (r.error) throw r.error;
       return true;
     });
   }
   async function persistDoctor(m) {
     return enqueue(async function () {
-      var data = { nome: m.nome, especialidade: (m.especialidades || [])[0] || "", especialidades: m.especialidades || [], convenios: m.convenios, updated_at: new Date().toISOString(), updated_by: currentUser.id };
+      var data = { nome: m.nome, especialidade: (m.especialidades || [])[0] || "", especialidades: m.especialidades || [], convenios: m.convenios, info_adicional: cleanInfo(m.info), updated_at: new Date().toISOString(), updated_by: currentUser.id };
       var r = m.id ? await supabase.from("medicos").update(data).eq("id", m.id).select().single() : await supabase.from("medicos").insert(data).select().single();
       if (r.error) throw r.error;
       if (r.data) {
@@ -447,8 +524,8 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
   }
   async function loadCloudData() {
     var results = await Promise.all([
-      supabase.from("app_config").select("especialidades,convenios").eq("id", 1).single(),
-      supabase.from("medicos").select("id,nome,especialidade,especialidades,convenios,created_at,updated_at,updated_by").order("nome")
+      supabase.from("app_config").select("especialidades,convenios,campos_adicionais").eq("id", 1).single(),
+      supabase.from("medicos").select("id,nome,especialidade,especialidades,convenios,info_adicional,created_at,updated_at,updated_by").order("nome")
     ]);
     if (results[0].error) throw results[0].error;
     if (results[1].error) throw results[1].error;
@@ -456,6 +533,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     if (cfg) {
       S.esp = Array.isArray(cfg.especialidades) && cfg.especialidades.length ? cfg.especialidades.map(String) : DEF_ESP.slice();
       S.conv = Array.isArray(cfg.convenios) && cfg.convenios.length ? cfg.convenios.map(String) : DEF_CONV.slice();
+      S.campos = Array.isArray(cfg.campos_adicionais) ? cleanCampos(cfg.campos_adicionais) : cloneCampos(DEF_CAMPOS);
     }
     S.medicos = (results[1].data || []).map(function (m) { return cleanDoc(m.id, m); });
     S.docsSeen = true;
@@ -529,10 +607,10 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     if (realtimeChannel) await supabase.removeChannel(realtimeChannel);
     realtimeChannel = supabase.channel("busca-medica-sync")
       .on("postgres_changes", { event: "*", schema: "public", table: "medicos" }, async function () {
-        try { var r = await supabase.from("medicos").select("id,nome,especialidade,especialidades,convenios,created_at,updated_at,updated_by").order("nome"); if (!r.error) { S.medicos = (r.data || []).map(function (m) { return cleanDoc(m.id, m); }); renderAll(); } } catch (e) { console.error(e); }
+        try { var r = await supabase.from("medicos").select("id,nome,especialidade,especialidades,convenios,info_adicional,created_at,updated_at,updated_by").order("nome"); if (!r.error) { S.medicos = (r.data || []).map(function (m) { return cleanDoc(m.id, m); }); renderAll(); } } catch (e) { console.error(e); }
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "app_config" }, async function () {
-        try { var r = await supabase.from("app_config").select("especialidades,convenios").eq("id", 1).single(); if (!r.error && r.data) { S.esp = (r.data.especialidades || []).map(String); S.conv = (r.data.convenios || []).map(String); renderAll(); } } catch (e) { console.error(e); }
+        try { var r = await supabase.from("app_config").select("especialidades,convenios,campos_adicionais").eq("id", 1).single(); if (!r.error && r.data) { S.esp = (r.data.especialidades || []).map(String); S.conv = (r.data.convenios || []).map(String); S.campos = Array.isArray(r.data.campos_adicionais) ? cleanCampos(r.data.campos_adicionais) : cloneCampos(DEF_CAMPOS); renderAll(); } } catch (e) { console.error(e); }
       }).subscribe();
     renderAll();
   }
@@ -541,7 +619,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
   function matches(m, f, skip) {
     if (skip !== "esp" && f.esp && (m.especialidades || [m.especialidade]).indexOf(f.esp) < 0) return false;
     if (skip !== "conv" && f.conv && m.convenios.indexOf(f.conv) < 0) return false;
-    if (f.q && norm(m.nome).indexOf(norm(f.q)) < 0) return false;
+    if (f.q && norm(m.nome).indexOf(norm(f.q)) < 0 && norm(crmText(m)).indexOf(norm(f.q)) < 0) return false;
     return true;
   }
   function setOptions(sel, first, items, current) {
@@ -594,23 +672,47 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     var conv = sorted(m.convenios).sort(function (a, b) { return (b === S.f.conv) - (a === S.f.conv); });
     var acts = del
       ? [
-          h("span", { class: "ask", text: "Remover?" }),
-          h("button", { type: "button", class: "link danger", text: "Sim", onclick: function () { S.delId = null; persistDelete(m.id); toast("Médico removido"); } }),
-          h("button", { type: "button", class: "link", text: "Não", onclick: function () { S.delId = null; renderResults(); } })
+          h("span", { class: "ask writer", text: "Remover?" }),
+          h("button", { type: "button", class: "link danger writer", text: "Sim", onclick: function () { S.delId = null; persistDelete(m.id); toast("Médico removido"); } }),
+          h("button", { type: "button", class: "link writer", text: "Não", onclick: function () { S.delId = null; renderResults(); } })
         ]
       : [
-          h("button", { type: "button", class: "link", text: "Editar", "aria-label": "Editar " + m.nome, onclick: function () { startEdit(m); } }),
-          h("button", { type: "button", class: "link danger", text: "Remover", "aria-label": "Remover " + m.nome, onclick: function () { S.delId = m.id; renderResults(); } })
+          h("button", { type: "button", class: "link writer", text: "Editar", "aria-label": "Editar " + m.nome, onclick: function () { startEdit(m); } }),
+          h("button", { type: "button", class: "link danger writer", text: "Remover", "aria-label": "Remover " + m.nome, onclick: function () { S.delId = m.id; renderResults(); } })
         ];
-    return h("div", { class: "row" },
-      h("div", { class: "c-name" }, h("strong", { class: "name", text: m.nome })),
+    var info = m.info || emptyInfo(), open = S.openId === m.id;
+    var quick = S.campos.map(function (c) { return (info.campos[c.id] || "").trim(); }).filter(Boolean).slice(0, 2).join(" · ");
+        var actsAll = [h("button", { type: "button", class: "link", text: open ? "Ocultar" : "Detalhes", "aria-expanded": open ? "true" : "false", "aria-label": (open ? "Ocultar" : "Ver") + " detalhes de " + m.nome, onclick: function () { S.openId = open ? null : m.id; renderResults(); } })].concat(acts);
+    return h("div", { class: "row" + (open ? " open" : "") },
+      h("div", { class: "c-name" }, h("strong", { class: "name", text: m.nome }), quick ? h("div", { class: "meta", text: quick }) : null),
       h("div", { class: "c-esp" }, (m.especialidades || [m.especialidade]).length
         ? h("div", { class: "chips" }, (m.especialidades || [m.especialidade]).map(function (e) { return h("span", { class: "tag" + (e === S.f.esp ? " match" : ""), text: e }); }))
         : h("span", { class: "muted", text: "Sem especialidade" })),
       h("div", { class: "c-conv" }, conv.length
         ? h("div", { class: "chips" }, conv.map(function (c) { return h("span", { class: "chip" + (c === S.f.conv ? " match" : ""), text: c }); }))
         : h("span", { class: "muted", text: "Nenhum convênio informado" })),
-      h("div", { class: "c-act writer" }, acts)
+      h("div", { class: "c-act" }, actsAll),
+      open ? h("div", { class: "c-det" }, detailsEl(m, info)) : null
+    );
+  }
+  function valueNode(tipo, v) {
+    if (tipo === "telefone") { var t = v.replace(/[^0-9+]/g, ""); return t ? h("a", { href: "tel:" + t, text: v }) : v; }
+    if (tipo === "whatsapp") { var w = waLink(v); return w ? h("a", { href: w, target: "_blank", rel: "noopener noreferrer", text: v }) : v; }
+    if (tipo === "email") return /^[^\s@]+@[^\s@]+$/.test(v) ? h("a", { href: "mailto:" + v, text: v }) : v;
+    return v;
+  }
+  function detailsEl(m, info) {
+    var items = [];
+    S.campos.forEach(function (c) {
+      var v = (info.campos[c.id] || "").trim();
+      if (!v) return;
+      items.push(h("div", {}, h("dt", { text: c.rotulo }), h("dd", {}, valueNode(c.tipo, v))));
+    });
+    var obs = (info.observacoes || "").trim();
+    return h("div", { class: "details" },
+      items.length ? h("dl", { class: "dl" }, items) : null,
+      obs ? h("div", {}, h("div", { class: "legend", text: "Observações" }), h("p", { class: "obs", text: obs })) : null,
+      !items.length && !obs ? h("p", { class: "muted", text: "Nenhuma informação adicional cadastrada. Use “Editar” para incluir dados deste médico." }) : null
     );
   }
 
@@ -705,6 +807,24 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     }
     g.querySelectorAll("input").forEach(function (i) { i.checked = F.conv.has(i.value); });
     updConvCount();
+    renderCamposForm();
+  }
+  function renderCamposForm() {
+    var F = S.form, box = $("f-campos");
+    var sig = S.campos.map(function (c) { return c.id + ":" + c.rotulo + ":" + c.tipo; }).join("|");
+    $("f-campos-hint").hidden = S.campos.length > 0;
+    if (box.dataset.sig !== sig) {
+      box.replaceChildren.apply(box, S.campos.map(function (c) {
+        var id = "fc-" + c.id;
+        var inp = h("input", { type: c.tipo === "email" ? "email" : "text", id: id, maxlength: "300", autocomplete: "off", inputmode: (c.tipo === "telefone" || c.tipo === "whatsapp") ? "tel" : null,
+          oninput: function (e) { S.form.info.campos[c.id] = e.target.value; } });
+        inp.dataset.cid = c.id;
+        return h("div", { class: "field" }, h("label", { for: id, text: c.rotulo }), inp);
+      }));
+      box.dataset.sig = sig;
+    }
+    box.querySelectorAll("input").forEach(function (i) { var v = F.info.campos[i.dataset.cid] || ""; if (i.value !== v) i.value = v; });
+    if ($("f-obs").value !== F.info.observacoes) $("f-obs").value = F.info.observacoes;
   }
 
   function usage(kind, name) {
@@ -737,17 +857,74 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     });
   }
 
+  function renderCamposCfg() {
+    var list = S.campos;
+    $("cfg-campos-n").textContent = list.length + " " + pl(list.length, "campo", "campos");
+    var box = $("cfg-campos-list");
+    box.replaceChildren();
+    if (!list.length) box.append(h("span", { class: "muted", text: "Nenhum campo. Adicione um acima." }));
+    list.forEach(function (c) {
+      box.append(h("span", { class: "cfg-chip" },
+        h("span", { text: c.rotulo }), h("span", { class: "muted", text: "· " + TIPOS[c.tipo] }),
+        h("button", { type: "button", class: "x writer", "aria-label": "Remover " + c.rotulo, text: "×", onclick: function () { S.pendingCampo = c.id; renderCamposCfg(); } })));
+    });
+    var cf = $("cfg-campos-confirm");
+    cf.replaceChildren();
+    var pc = S.pendingCampo && list.filter(function (c) { return c.id === S.pendingCampo; })[0];
+    if (pc) {
+      var n = S.medicos.filter(function (m) { return ((m.info.campos[pc.id]) || "").trim(); }).length;
+      cf.append(h("div", { class: "confirm writer" },
+        h("p", {}, h("strong", { text: "Remover o campo “" + pc.rotulo + "”? " }),
+          n ? n + " " + pl(n, "médico tem", "médicos têm") + " esse dado preenchido, que será apagado." : "Nenhum médico tem esse dado preenchido."),
+        h("div", { class: "actions" },
+          h("button", { type: "button", class: "btn danger", text: "Remover", onclick: removeCampo }),
+          h("button", { type: "button", class: "btn ghost", text: "Cancelar", onclick: function () { S.pendingCampo = null; renderCamposCfg(); } }))));
+    }
+  }
+  function addCampo(e) {
+    e.preventDefault();
+    var inp = $("cfg-campos-in"), err = $("cfg-campos-err");
+    var v = inp.value.trim().replace(/\s+/g, " ");
+    err.textContent = "";
+    if (!v) return;
+    if (S.campos.some(function (c) { return norm(c.rotulo) === norm(v); })) { err.textContent = "“" + v + "” já existe."; return; }
+    S.campos = S.campos.concat([{ id: newCampoId(), rotulo: v, tipo: $("cfg-campos-tipo").value }]);
+    inp.value = "";
+    persistConfig();
+    renderAll();
+    toast("Campo adicionado: " + v);
+  }
+  function removeCampo() {
+    var id = S.pendingCampo; if (!id) return;
+    S.pendingCampo = null;
+    var nome = (S.campos.filter(function (c) { return c.id === id; })[0] || {}).rotulo || "";
+    S.campos = S.campos.filter(function (c) { return c.id !== id; });
+    delete S.form.info.campos[id];
+    var changed = [];
+    S.medicos.forEach(function (m) {
+      if (m.info.campos[id] != null) {
+        var info = { observacoes: m.info.observacoes, campos: Object.assign({}, m.info.campos) };
+        delete info.campos[id];
+        changed.push({ id: m.id, nome: m.nome, especialidades: m.especialidades, convenios: m.convenios, info: info });
+      }
+    });
+    persistConfig();
+    changed.forEach(persistDoctor);
+    renderAll();
+    toast("Campo removido: " + nome);
+  }
   function renderAll() {
     renderStatus();
     renderSearch();
     renderForm();
     renderSettings();
+    renderCamposCfg();
   }
 
   /* ---------- Ações ---------- */
-  function resetForm() { S.form = { id: null, nome: "", esp: new Set(), conv: new Set() }; $("f-err").textContent = ""; }
+  function resetForm() { S.form = { id: null, nome: "", esp: new Set(), conv: new Set(), info: emptyInfo() }; $("f-err").textContent = ""; }
   function startEdit(m) {
-    S.form = { id: m.id, nome: m.nome, esp: new Set(m.especialidades || [m.especialidade].filter(Boolean)), conv: new Set(m.convenios) };
+    S.form = { id: m.id, nome: m.nome, esp: new Set(m.especialidades || [m.especialidade].filter(Boolean)), conv: new Set(m.convenios), info: { observacoes: (m.info || {}).observacoes || "", campos: Object.assign({}, (m.info || {}).campos) } };
     $("f-err").textContent = "";
     renderForm();
     go("cadastrar");
@@ -761,7 +938,9 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     if (!nome) { err.textContent = "Informe o nome do médico."; $("f-nome").focus(); return; }
     if (!F.esp.size) { err.textContent = "Escolha pelo menos uma especialidade."; $("f-esp").focus(); return; }
     var editing = !!F.id;
-    var ok = await persistDoctor({ id: F.id, nome: nome, especialidades: sorted(Array.from(F.esp)), convenios: sorted(Array.from(F.conv)) });
+    var info = { observacoes: String(F.info.observacoes || "").trim(), campos: {} };
+    S.campos.forEach(function (c) { var v = String(F.info.campos[c.id] || "").trim(); if (v) info.campos[c.id] = v; });
+        var ok = await persistDoctor({ id: F.id, nome: nome, especialidades: sorted(Array.from(F.esp)), convenios: sorted(Array.from(F.conv)), info: info });
     if (!ok) return;
     toast(editing ? "Alterações salvas" : "Médico cadastrado");
     resetForm(); renderForm();
@@ -786,8 +965,8 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
     S[p.kind] = S[p.kind].filter(function (x) { return x !== p.name; });
     var changed = [];
     S.medicos.forEach(function (m) {
-      if (p.kind === "esp" && (m.especialidades || [m.especialidade]).indexOf(p.name) >= 0) { var remaining = (m.especialidades || [m.especialidade]).filter(function (e) { return e !== p.name; }); changed.push({ id: m.id, nome: m.nome, especialidades: remaining, convenios: m.convenios }); }
-      if (p.kind === "conv" && m.convenios.indexOf(p.name) >= 0) changed.push({ id: m.id, nome: m.nome, especialidades: m.especialidades || [m.especialidade].filter(Boolean), convenios: m.convenios.filter(function (c) { return c !== p.name; }) });
+      if (p.kind === "esp" && (m.especialidades || [m.especialidade]).indexOf(p.name) >= 0) { var remaining = (m.especialidades || [m.especialidade]).filter(function (e) { return e !== p.name; }); changed.push({ id: m.id, nome: m.nome, especialidades: remaining, convenios: m.convenios, info: m.info }); }
+      if (p.kind === "conv" && m.convenios.indexOf(p.name) >= 0) changed.push({ id: m.id, nome: m.nome, especialidades: m.especialidades || [m.especialidade].filter(Boolean), convenios: m.convenios.filter(function (c) { return c !== p.name; }), info: m.info });
     });
     if (S.f[p.kind] === p.name) S.f[p.kind] = "";
     if (p.kind === "esp") S.form.esp.delete(p.name);
@@ -833,6 +1012,8 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; font-weight:
   $("flt-clear").addEventListener("click", clearFilters);
 
   $("f-nome").addEventListener("input", function (e) { S.form.nome = e.target.value; });
+  $("f-obs").addEventListener("input", function (e) { S.form.info.observacoes = e.target.value; });
+  $("add-campos").addEventListener("submit", addCampo);
   $("esp-all").addEventListener("click", function () { S.form.esp = new Set(S.esp); renderForm(); });
   $("esp-none").addEventListener("click", function () { S.form.esp = new Set(); renderForm(); });
   $("conv-all").addEventListener("click", function () { S.form.conv = new Set(S.conv); renderForm(); });
