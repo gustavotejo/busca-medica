@@ -175,6 +175,24 @@ input[type="text"]::placeholder, input[type="email"]::placeholder { color: var(-
 .empty p { max-width: 46ch; color: var(--muted); }
 
 /* Informações adicionais (formulário) */
+/* Primeira consulta */
+:root { --pv-ok-bg:#DDF3E4; --pv-ok-fg:#14602F; --pv-ok-bd:#2E9B57; --pv-no-bg:#FBE4DF; --pv-no-fg:#9B2C1C; --pv-no-bd:#C9503C; --pv-part-bg:#FFF0CC; --pv-part-fg:#7A5200; --pv-part-bd:#D49A1E; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pv-ok-bg:#17382A; --pv-ok-fg:#8FE0AE; --pv-ok-bd:#3FAE6B; --pv-no-bg:#3A201C; --pv-no-fg:#F5A090; --pv-no-bd:#D9695A; --pv-part-bg:#3B3114; --pv-part-fg:#F2D26E; --pv-part-bd:#C9962A; } }
+:root[data-theme="dark"] { --pv-ok-bg:#17382A; --pv-ok-fg:#8FE0AE; --pv-ok-bd:#3FAE6B; --pv-no-bg:#3A201C; --pv-no-fg:#F5A090; --pv-no-bd:#D9695A; --pv-part-bg:#3B3114; --pv-part-fg:#F2D26E; --pv-part-bd:#C9962A; }
+.pvwrap { margin-top: 6px; }
+.pv { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid; }
+.pv::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.pv-atende { background: var(--pv-ok-bg); color: var(--pv-ok-fg); border-color: var(--pv-ok-bd); }
+.pv-nao_atende { background: var(--pv-no-bg); color: var(--pv-no-fg); border-color: var(--pv-no-bd); }
+.pv-particular { background: var(--pv-part-bg); color: var(--pv-part-fg); border-color: var(--pv-part-bd); }
+.pv-group { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.pv-opt { position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 8px 14px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface-2); color: var(--ink); font: 600 14px var(--f-body); cursor: pointer; }
+.pv-opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.pv-opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pv-opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-text); }
+.pv-opt.pv-atende:has(input:checked) { background: var(--pv-ok-bg); color: var(--pv-ok-fg); border-color: var(--pv-ok-bd); }
+.pv-opt.pv-nao_atende:has(input:checked) { background: var(--pv-no-bg); color: var(--pv-no-fg); border-color: var(--pv-no-bd); }
+.pv-opt.pv-particular:has(input:checked) { background: var(--pv-part-bg); color: var(--pv-part-fg); border-color: var(--pv-part-bd); }
 .sect { border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 14px; }
 .sect h3 { font-size: 16px; }
 .g2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; }
@@ -273,6 +291,10 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
           <select id="flt-conv"></select>
         </div>
         <div class="field">
+          <label for="flt-pv">Primeira consulta</label>
+          <select id="flt-pv"></select>
+        </div>
+        <div class="field">
           <label for="flt-q">Nome ou CRM</label>
           <input type="text" id="flt-q" autocomplete="off" placeholder="Digite parte do nome ou CRM">
         </div>
@@ -311,6 +333,13 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
       </div>
       <div class="sect">
         <h3>Informações adicionais <span class="muted" style="font-weight:500;font-size:13px">(opcional)</span></h3>
+        <fieldset class="pv-group field" id="f-pv">
+          <legend class="legend" style="padding:0;margin-bottom:8px">Primeira consulta</legend>
+          <label class="pv-opt"><input type="radio" name="f-pv" value="" checked>Não informado</label>
+          <label class="pv-opt pv-atende"><input type="radio" name="f-pv" value="atende">Atende primeira vez</label>
+          <label class="pv-opt pv-nao_atende"><input type="radio" name="f-pv" value="nao_atende">Não atende primeira vez</label>
+          <label class="pv-opt pv-particular"><input type="radio" name="f-pv" value="particular">Primeira vez apenas particular</label>
+        </fieldset>
         <p class="hint" id="f-campos-hint" hidden>Nenhum campo adicional definido. Você pode criar campos na aba Configurações.</p>
         <div class="g2" id="f-campos"></div>
         <div class="field"><label for="f-obs">Observações</label><textarea id="f-obs" maxlength="2000" placeholder="Dias e horários, valor da consulta particular, quem indicou, etc."></textarea></div>
@@ -375,6 +404,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
 (function () {
   var DEF_ESP = ["Endocrinologista", "Cardiologista", "Geriatra", "Nefrologista", "Reumatologista", "Clínico Geral", "Infectologista", "Psicologia", "Urologista", "Gastroenterologista", "Ortopedista", "Psiquiatra", "Nutricionista", "Angiologista", "Ginecologista", "Dermatologista"];
   var DEF_CONV = ["AFRAFEP", "ASSEFAZ", "BRADESCO", "CAMED", "CAPESAUDE", "CASEMBRAPA", "CASSI", "COMSEDER", "CONAB", "FACHESF", "FUNASA", "FUSMAN", "FUSEX", "GEAP", "AMIL", "PETROBRAS", "POSTAL SAUDE", "SAÚDE CAIXA", "SULAMERICA", "SMILE", "UNIMED"];
+  var PV = { atende: "Atende primeira vez", nao_atende: "Não atende primeira vez", particular: "Primeira vez apenas particular" };
   var TIPOS = { texto: "Texto", telefone: "Telefone", whatsapp: "WhatsApp", email: "E-mail" };
   var DEF_CAMPOS = [
     { id: "crm", rotulo: "CRM", tipo: "texto" },
@@ -396,13 +426,13 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
   var S = {
     esp: DEF_ESP.slice(), conv: DEF_CONV.slice(), campos: cloneCampos(DEF_CAMPOS), pendingCampo: null, medicos: [],
     docsSeen: false, mode: "loading", canWrite: true,
-    f: { esp: "", conv: "", q: "" },
+    f: { esp: "", conv: "", pv: "", q: "" },
     form: { id: null, nome: "", esp: new Set(), conv: new Set(), info: emptyInfo() }, openId: null,
     pending: null, delId: null, isAdmin: false, auditLoading: false
   };
 
   var LEGACY_KEYS = ["crm", "telefone", "whatsapp", "email", "endereco"];
-  function emptyInfo() { return { observacoes: "", campos: {} }; }
+  function emptyInfo() { return { observacoes: "", primeira_vez: "", campos: {} }; }
   function cleanInfo(raw) {
     var o = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
     var campos = {};
@@ -410,7 +440,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
       Object.keys(o.campos).forEach(function (k) { if (o.campos[k] != null && String(o.campos[k]).trim()) campos[k] = String(o.campos[k]); });
     }
     LEGACY_KEYS.forEach(function (k) { if (campos[k] == null && o[k] != null && String(o[k]).trim()) campos[k] = String(o[k]); });
-    return { observacoes: o.observacoes == null ? "" : String(o.observacoes), campos: campos };
+    return { observacoes: o.observacoes == null ? "" : String(o.observacoes), primeira_vez: PV[o.primeira_vez] ? o.primeira_vez : "", campos: campos };
   }
   function crmText(m) {
     return S.campos.filter(function (c) { return norm(c.rotulo) === "crm"; }).map(function (c) { return (m.info && m.info.campos[c.id]) || ""; }).join(" ");
@@ -616,9 +646,12 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
   }
 
   /* ---------- Filtros ---------- */
+  var PV_FILTRO = [["atende", PV.atende], ["nao_atende", PV.nao_atende], ["particular", PV.particular], ["none", "Não informado"]];
+  function pvOf(m) { return (m.info && m.info.primeira_vez) || "none"; }
   function matches(m, f, skip) {
     if (skip !== "esp" && f.esp && (m.especialidades || [m.especialidade]).indexOf(f.esp) < 0) return false;
     if (skip !== "conv" && f.conv && m.convenios.indexOf(f.conv) < 0) return false;
+    if (skip !== "pv" && f.pv && pvOf(m) !== f.pv) return false;
     if (f.q && norm(m.nome).indexOf(norm(f.q)) < 0 && norm(crmText(m)).indexOf(norm(f.q)) < 0) return false;
     return true;
   }
@@ -631,7 +664,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     sel.value = current;
   }
   function clearFilters() {
-    S.f = { esp: "", conv: "", q: "" };
+    S.f = { esp: "", conv: "", pv: "", q: "" };
     $("flt-q").value = "";
     renderSearch();
   }
@@ -658,6 +691,11 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
       var n = S.medicos.filter(function (m) { return matches(m, S.f, "conv") && m.convenios.indexOf(c) >= 0; }).length;
       return { v: c, label: c + " (" + n + ")" };
     });
+    var pvItems = PV_FILTRO.map(function (o) {
+      var n = S.medicos.filter(function (m) { return matches(m, S.f, "pv") && pvOf(m) === o[0]; }).length;
+      return { v: o[0], label: o[1] + " (" + n + ")" };
+    });
+    setOptions($("flt-pv"), "Todas", pvItems, S.f.pv);
     setOptions($("flt-esp"), "Todas as especialidades", espItems, S.f.esp);
     setOptions($("flt-conv"), "Todos os convênios", convItems, S.f.conv);
   }
@@ -684,7 +722,8 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     var quick = S.campos.map(function (c) { return (info.campos[c.id] || "").trim(); }).filter(Boolean).slice(0, 2).join(" · ");
         var actsAll = [h("button", { type: "button", class: "link", text: open ? "Ocultar" : "Detalhes", "aria-expanded": open ? "true" : "false", "aria-label": (open ? "Ocultar" : "Ver") + " detalhes de " + m.nome, onclick: function () { S.openId = open ? null : m.id; renderResults(); } })].concat(acts);
     return h("div", { class: "row" + (open ? " open" : "") },
-      h("div", { class: "c-name" }, h("strong", { class: "name", text: m.nome }), quick ? h("div", { class: "meta", text: quick }) : null),
+      h("div", { class: "c-name" }, h("strong", { class: "name", text: m.nome }), quick ? h("div", { class: "meta", text: quick }) : null,
+        info.primeira_vez ? h("div", { class: "pvwrap" }, h("span", { class: "pv pv-" + info.primeira_vez, text: PV[info.primeira_vez] })) : null),
       h("div", { class: "c-esp" }, (m.especialidades || [m.especialidade]).length
         ? h("div", { class: "chips" }, (m.especialidades || [m.especialidade]).map(function (e) { return h("span", { class: "tag" + (e === S.f.esp ? " match" : ""), text: e }); }))
         : h("span", { class: "muted", text: "Sem especialidade" })),
@@ -729,7 +768,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
       return;
     }
     var f = S.f;
-    var active = !!(f.esp || f.conv || f.q.trim());
+    var active = !!(f.esp || f.conv || f.pv || f.q.trim());
     var list = S.medicos.filter(function (m) { return matches(m, f); })
       .sort(function (a, b) { return collator.compare(a.especialidade, b.especialidade) || collator.compare(a.nome, b.nome); });
     var n = list.length;
@@ -740,6 +779,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     var chips = [];
     if (f.esp) chips.push(fchip("Especialidade", f.esp, function () { S.f.esp = ""; renderSearch(); }));
     if (f.conv) chips.push(fchip("Convênio", f.conv, function () { S.f.conv = ""; renderSearch(); }));
+    if (f.pv) chips.push(fchip("Primeira consulta", (PV_FILTRO.filter(function (o) { return o[0] === f.pv; })[0] || [0, f.pv])[1], function () { S.f.pv = ""; renderSearch(); }));
     if (f.q.trim()) chips.push(fchip("Nome", f.q.trim(), function () { S.f.q = ""; $("flt-q").value = ""; renderSearch(); }));
     if (chips.length) sum.append(h("div", { class: "fchips" }, chips));
     if (!n) {
@@ -825,6 +865,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     }
     box.querySelectorAll("input").forEach(function (i) { var v = F.info.campos[i.dataset.cid] || ""; if (i.value !== v) i.value = v; });
     if ($("f-obs").value !== F.info.observacoes) $("f-obs").value = F.info.observacoes;
+    document.querySelectorAll('input[name="f-pv"]').forEach(function (r) { r.checked = r.value === F.info.primeira_vez; });
   }
 
   function usage(kind, name) {
@@ -903,7 +944,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     var changed = [];
     S.medicos.forEach(function (m) {
       if (m.info.campos[id] != null) {
-        var info = { observacoes: m.info.observacoes, campos: Object.assign({}, m.info.campos) };
+        var info = Object.assign({}, m.info, { campos: Object.assign({}, m.info.campos) });
         delete info.campos[id];
         changed.push({ id: m.id, nome: m.nome, especialidades: m.especialidades, convenios: m.convenios, info: info });
       }
@@ -924,7 +965,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
   /* ---------- Ações ---------- */
   function resetForm() { S.form = { id: null, nome: "", esp: new Set(), conv: new Set(), info: emptyInfo() }; $("f-err").textContent = ""; }
   function startEdit(m) {
-    S.form = { id: m.id, nome: m.nome, esp: new Set(m.especialidades || [m.especialidade].filter(Boolean)), conv: new Set(m.convenios), info: { observacoes: (m.info || {}).observacoes || "", campos: Object.assign({}, (m.info || {}).campos) } };
+    S.form = { id: m.id, nome: m.nome, esp: new Set(m.especialidades || [m.especialidade].filter(Boolean)), conv: new Set(m.convenios), info: { observacoes: (m.info || {}).observacoes || "", primeira_vez: (m.info || {}).primeira_vez || "", campos: Object.assign({}, (m.info || {}).campos) } };
     $("f-err").textContent = "";
     renderForm();
     go("cadastrar");
@@ -938,7 +979,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     if (!nome) { err.textContent = "Informe o nome do médico."; $("f-nome").focus(); return; }
     if (!F.esp.size) { err.textContent = "Escolha pelo menos uma especialidade."; $("f-esp").focus(); return; }
     var editing = !!F.id;
-    var info = { observacoes: String(F.info.observacoes || "").trim(), campos: {} };
+    var info = { observacoes: String(F.info.observacoes || "").trim(), primeira_vez: PV[F.info.primeira_vez] ? F.info.primeira_vez : "", campos: {} };
     S.campos.forEach(function (c) { var v = String(F.info.campos[c.id] || "").trim(); if (v) info.campos[c.id] = v; });
         var ok = await persistDoctor({ id: F.id, nome: nome, especialidades: sorted(Array.from(F.esp)), convenios: sorted(Array.from(F.conv)), info: info });
     if (!ok) return;
@@ -1008,11 +1049,13 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
 
   $("flt-esp").addEventListener("change", function (e) { S.f.esp = e.target.value; renderSearch(); });
   $("flt-conv").addEventListener("change", function (e) { S.f.conv = e.target.value; renderSearch(); });
+  $("flt-pv").addEventListener("change", function (e) { S.f.pv = e.target.value; renderSearch(); });
   $("flt-q").addEventListener("input", function (e) { S.f.q = e.target.value; renderSearch(); });
   $("flt-clear").addEventListener("click", clearFilters);
 
   $("f-nome").addEventListener("input", function (e) { S.form.nome = e.target.value; });
   $("f-obs").addEventListener("input", function (e) { S.form.info.observacoes = e.target.value; });
+  document.querySelectorAll('input[name="f-pv"]').forEach(function (r) { r.addEventListener("change", function () { if (r.checked) S.form.info.primeira_vez = r.value; }); });
   $("add-campos").addEventListener("submit", addCampo);
   $("esp-all").addEventListener("click", function () { S.form.esp = new Set(S.esp); renderForm(); });
   $("esp-none").addEventListener("click", function () { S.form.esp = new Set(); renderForm(); });
