@@ -105,6 +105,9 @@ p { margin: 0; }
 .login-panel { display: grid; gap: 16px; }
 .login-panel .brand { margin-bottom: 8px; }
 .login-panel .btn { width: 100%; }
+.login-panel .ok { color: var(--accent-text); font-weight: 500; }
+.login-panel .ok:empty, .login-panel .err:empty { display: none; }
+.login-panel .link { justify-self: center; }
 .login-panel .muted { color: var(--muted); font-size: 12px; }
 .login-panel input { width: 100%; min-height: 44px; font: 500 16px var(--f-body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 /* Componentes */
@@ -249,9 +252,22 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     <div class="brand"><div class="mark" aria-hidden="true">+</div><div><h1>Busca Médica</h1><p class="sub">Entre para acessar o cadastro compartilhado</p></div></div>
     <div class="field"><label for="login-username">Usuário ou e-mail</label><input id="login-username" type="text" autocomplete="username" required minlength="3" maxlength="254" placeholder="Seu usuário ou e-mail cadastrado" autocapitalize="none" spellcheck="false"></div>
     <div class="field"><label for="login-password">Senha</label><input id="login-password" type="password" autocomplete="current-password" required placeholder="Sua senha"></div>
+    <p id="login-info" class="ok" role="status"></p>
     <p id="login-error" class="err" role="alert"></p>
     <button id="login-submit" class="btn" type="submit">Entrar</button>
+    <button id="pw-open" class="link" type="button">Alterar minha senha</button>
     <p class="muted">Use o usuário e a senha fornecidos pelo administrador.</p>
+  </form>
+  <form id="pw-form" class="panel login-panel" hidden>
+    <div class="brand"><div class="mark" aria-hidden="true">+</div><div><h1>Alterar senha</h1><p class="sub">Informe a senha atual e escolha uma nova</p></div></div>
+    <div class="field"><label for="pw-username">Usuário ou e-mail</label><input id="pw-username" type="text" autocomplete="username" required maxlength="254" autocapitalize="none" spellcheck="false"></div>
+    <div class="field"><label for="pw-current">Senha atual</label><input id="pw-current" type="password" autocomplete="current-password" required></div>
+    <div class="field"><label for="pw-new">Nova senha</label><input id="pw-new" type="password" autocomplete="new-password" required minlength="8" placeholder="Mínimo de 8 caracteres"></div>
+    <div class="field"><label for="pw-confirm">Repita a nova senha</label><input id="pw-confirm" type="password" autocomplete="new-password" required minlength="8"></div>
+    <p id="pw-msg" class="err" role="alert"></p>
+    <button id="pw-submit" class="btn" type="submit">Salvar nova senha</button>
+    <button id="pw-back" class="link" type="button">Voltar ao login</button>
+    <p class="muted">Para trocar a senha é preciso saber a senha atual. Se você a esqueceu, peça ao administrador para redefini-la.</p>
   </form>
 </section>
 <div class="app" id="app" data-ro="0" hidden>
@@ -504,9 +520,12 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     var esps = Array.isArray(d.especialidades) ? d.especialidades.map(String) : (d.especialidade ? [String(d.especialidade)] : []);
     return { id: id, nome: String(d.nome || ""), especialidades: esps, especialidade: esps[0] || "", convenios: Array.isArray(d.convenios) ? d.convenios.map(String) : [], info: cleanInfo(d.info_adicional) };
   }
-  function showLogin(message) {
+  function showLogin(message, info) {
     $("login-screen").hidden = false;
     $("app").hidden = true;
+    $("pw-form").hidden = true;
+    $("login-form").hidden = false;
+    $("login-info").textContent = info || "";
     $("login-error").textContent = message || "";
     $("login-submit").disabled = false;
     $("login-submit").textContent = "Entrar";
@@ -1112,6 +1131,55 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
       showLogin("Erro ao carregar seus dados. Confira se as tabelas e permissões do Supabase foram configuradas.");
     }
   });
+  function openPw() {
+    $("pw-username").value = $("login-username").value;
+    ["pw-current", "pw-new", "pw-confirm"].forEach(function (id) { $(id).value = ""; });
+    $("pw-msg").textContent = "";
+    $("login-form").hidden = true;
+    $("pw-form").hidden = false;
+    ($("pw-username").value ? $("pw-current") : $("pw-username")).focus();
+  }
+  $("pw-open").addEventListener("click", openPw);
+  $("pw-back").addEventListener("click", function () { $("pw-form").hidden = true; $("login-form").hidden = false; });
+  $("pw-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    var msg = $("pw-msg"), btn = $("pw-submit");
+    var username = $("pw-username").value.trim().toLowerCase(), cur = $("pw-current").value, nw = $("pw-new").value, cf = $("pw-confirm").value;
+    msg.textContent = "";
+    if (!username || !cur || !nw) { msg.textContent = "Preencha todos os campos."; return; }
+    if (nw.length < 8) { msg.textContent = "A nova senha precisa ter pelo menos 8 caracteres."; return; }
+    if (nw !== cf) { msg.textContent = "A confirmação não é igual à nova senha."; return; }
+    if (nw === cur) { msg.textContent = "A nova senha deve ser diferente da atual."; return; }
+    btn.disabled = true; btn.textContent = "Salvando…";
+    var signedIn = false;
+    try {
+      var email = username.indexOf("@") >= 0 ? username : username + "@buscamedica.test";
+      var r = await supabase.auth.signInWithPassword({ email: email, password: cur });
+      if (r.error) { msg.textContent = "Usuário ou senha atual incorretos."; return; }
+      signedIn = true;
+      var u = await supabase.auth.updateUser({ password: nw });
+      if (u.error) {
+        var t = String(u.error.message || "");
+        msg.textContent = /same|different/i.test(t) ? "A nova senha deve ser diferente da atual."
+          : /weak|short|least|character|password/i.test(t) ? "A senha não atende aos requisitos de segurança. Use mais caracteres, misturando letras e números."
+          : "Não foi possível alterar a senha. Tente novamente.";
+        return;
+      }
+      await supabase.auth.signOut({ scope: "local" });
+      signedIn = false;
+      $("login-username").value = username;
+      $("login-password").value = "";
+      ["pw-current", "pw-new", "pw-confirm"].forEach(function (id) { $(id).value = ""; });
+      showLogin("", "Senha alterada com sucesso. Entre com a nova senha.");
+    } catch (err) {
+      console.error(err);
+      msg.textContent = "Erro de conexão. Verifique sua internet e tente novamente.";
+    } finally {
+      if (signedIn) { try { await supabase.auth.signOut({ scope: "local" }); } catch (_) {} }
+      btn.disabled = false; btn.textContent = "Salvar nova senha";
+    }
+  });
+
   show(location.hash.slice(1) || "buscar");
   renderAll();
   connect();
