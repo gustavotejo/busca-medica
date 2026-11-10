@@ -188,7 +188,6 @@ input[type="text"]::placeholder, input[type="email"]::placeholder, input[type="n
 .pv-atende { background: var(--pv-ok-bg); color: var(--pv-ok-fg); border-color: var(--pv-ok-bd); }
 .pv-nao_atende { background: var(--pv-no-bg); color: var(--pv-no-fg); border-color: var(--pv-no-bd); }
 .pv-particular { background: var(--pv-part-bg); color: var(--pv-part-fg); border-color: var(--pv-part-bd); }
-.pv-cond { border-style: dashed; }
 .pv-note { margin-top: 4px; font-size: 12.5px; font-weight: 600; color: var(--pv-ok-fg); }
 .pv-lim { display: grid; gap: 10px; padding: 12px 14px; border: 1px dashed var(--pv-ok-bd); border-radius: 10px; background: var(--pv-ok-bg); }
 .pv-lim[hidden] { display: none; }
@@ -746,7 +745,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
       var q = parseInt(info.pv_qtd, 10);
       note = h("div", { class: "pv-note", text: q ? "* Atende só " + q + (q === 1 ? " primeira consulta" : " primeiras consultas") + " por turno" : "* Número limitado de primeiras consultas por turno" });
     }
-    return h("div", { class: "pvwrap" }, h("span", { class: "pv pv-" + info.primeira_vez + (cond ? " pv-cond" : ""), text: PV[info.primeira_vez] + (cond ? " *" : "") }), note);
+    return h("div", { class: "pvwrap" }, h("span", { class: "pv pv-" + info.primeira_vez, text: PV[info.primeira_vez] }), note);
   }
   function rowEl(m) {
     var del = S.delId === m.id;
