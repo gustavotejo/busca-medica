@@ -1,4 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<script>try{var __t=localStorage.getItem("buscamedica_tema");if(__t==="dark"||__t==="light")document.documentElement.setAttribute("data-theme",__t)}catch(e){}</script>
 <title>Busca Médica</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -93,6 +94,7 @@ p { margin: 0; }
 .status[data-mode="cloud"]::before { background: var(--accent); }
 .status[data-mode="local"]::before { background: #C98A12; }
 .status[data-mode="error"]::before { background: var(--danger); }
+.theme-row { display: flex; justify-content: flex-end; margin-bottom: 8px; }
 .top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 #logout-btn { min-height: 36px; padding: 7px 12px; }
 
@@ -254,6 +256,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
 </style>
 
 <section id="login-screen" class="login-screen" hidden>
+  <div class="theme-row"><button id="theme-btn-login" class="btn ghost" type="button" title="Alternar entre tema automático, claro e escuro"></button></div>
   <form id="login-form" class="panel login-panel">
     <div class="brand"><div class="mark" aria-hidden="true">+</div><div><h1>Busca Médica</h1><p class="sub">Entre para acessar o cadastro compartilhado</p></div></div>
     <div class="field"><label for="login-username">Usuário ou e-mail</label><input id="login-username" type="text" autocomplete="username" required minlength="3" maxlength="254" placeholder="Seu usuário ou e-mail cadastrado" autocapitalize="none" spellcheck="false"></div>
@@ -289,6 +292,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     </div>
     <div class="top-actions">
       <span class="status" id="status" role="status" data-mode="loading">Conectando…</span>
+      <button id="theme-btn" class="btn ghost" type="button" title="Alternar entre tema automático, claro e escuro"></button>
       <button id="logout-btn" class="btn ghost" type="button" title="Sair e entrar com outro usuário">Sair</button>
     </div>
   </header>
@@ -1124,6 +1128,28 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
   $("f-cancel").addEventListener("click", function () { resetForm(); renderForm(); go("buscar"); });
   $("add-esp").addEventListener("submit", function (e) { addItem("esp", e); });
   $("add-conv").addEventListener("submit", function (e) { addItem("conv", e); });
+
+  var THEME_KEY = "buscamedica_tema", THEMES = ["auto", "light", "dark"];
+  var THEME_LABEL = { auto: "◐ Tema: Automático", light: "☀ Tema: Claro", dark: "☾ Tema: Escuro" };
+  var themeNow = "auto";
+  try { var st = localStorage.getItem(THEME_KEY); if (THEMES.indexOf(st) >= 0) themeNow = st; } catch (e) {}
+  function applyTheme(t) {
+    themeNow = t;
+    var r = document.documentElement;
+    if (t === "auto") r.removeAttribute("data-theme"); else r.setAttribute("data-theme", t);
+    ["theme-btn", "theme-btn-login"].forEach(function (id) {
+      var b = $(id); if (!b) return;
+      b.textContent = THEME_LABEL[t];
+      b.setAttribute("aria-label", "Alterar tema. Atual: " + THEME_LABEL[t].slice(2).replace("Tema: ", ""));
+    });
+  }
+  function cycleTheme() {
+    var t = THEMES[(THEMES.indexOf(themeNow) + 1) % THEMES.length];
+    try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+    applyTheme(t);
+  }
+  ["theme-btn", "theme-btn-login"].forEach(function (id) { $(id).addEventListener("click", cycleTheme); });
+  applyTheme(themeNow);
 
   $("logout-btn").addEventListener("click", async function () {
     var btn = $("logout-btn");
