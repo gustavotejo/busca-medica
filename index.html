@@ -184,6 +184,11 @@ input[type="text"]::placeholder, input[type="email"]::placeholder, input[type="n
 :root { --pv-ok-bg:#DDF3E4; --pv-ok-fg:#14602F; --pv-ok-bd:#2E9B57; --pv-no-bg:#FBE4DF; --pv-no-fg:#9B2C1C; --pv-no-bd:#C9503C; --pv-part-bg:#FFF0CC; --pv-part-fg:#7A5200; --pv-part-bd:#D49A1E; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pv-ok-bg:#17382A; --pv-ok-fg:#8FE0AE; --pv-ok-bd:#3FAE6B; --pv-no-bg:#3A201C; --pv-no-fg:#F5A090; --pv-no-bd:#D9695A; --pv-part-bg:#3B3114; --pv-part-fg:#F2D26E; --pv-part-bd:#C9962A; } }
 :root[data-theme="dark"] { --pv-ok-bg:#17382A; --pv-ok-fg:#8FE0AE; --pv-ok-bd:#3FAE6B; --pv-no-bg:#3A201C; --pv-no-fg:#F5A090; --pv-no-bd:#D9695A; --pv-part-bg:#3B3114; --pv-part-fg:#F2D26E; --pv-part-bd:#C9962A; }
+.obs-chip { display: inline-flex; align-items: center; gap: 7px; margin-top: 6px; font: 600 12.5px var(--f-body); padding: 3px 10px 3px 5px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--accent-text); cursor: pointer; }
+.obs-chip::before { content: "i"; width: 17px; height: 17px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 700; display: grid; place-items: center; flex: none; }
+.obs-chip:hover { border-color: var(--accent); }
+.obs-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.obswrap { display: block; }
 .pvwrap { margin-top: 6px; }
 .pv { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid; }
 .pv::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
@@ -741,6 +746,10 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
       h("b", { text: label + ":" }), " " + value, h("span", { "aria-hidden": "true", text: "×" }));
   }
 
+  function obsChip(m, info, open) {
+    if (!(info.observacoes || "").trim()) return null;
+    return h("div", { class: "obswrap" }, h("button", { type: "button", class: "obs-chip", text: "Possui observação", "aria-expanded": open ? "true" : "false", "aria-label": "Possui observação. " + (open ? "Ocultar" : "Ver") + " detalhes de " + m.nome, onclick: function () { S.openId = open ? null : m.id; renderResults(); } }));
+  }
   function pvBadge(info) {
     if (!info.primeira_vez) return null;
     var cond = info.primeira_vez === "atende" && info.pv_limitado;
@@ -769,7 +778,8 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
         var actsAll = [h("button", { type: "button", class: "link", text: open ? "Ocultar" : "Detalhes", "aria-expanded": open ? "true" : "false", "aria-label": (open ? "Ocultar" : "Ver") + " detalhes de " + m.nome, onclick: function () { S.openId = open ? null : m.id; renderResults(); } })].concat(acts);
     return h("div", { class: "row" + (open ? " open" : "") },
       h("div", { class: "c-name" }, h("strong", { class: "name", text: m.nome }), quick ? h("div", { class: "meta", text: quick }) : null,
-        pvBadge(info)),
+        pvBadge(info),
+        obsChip(m, info, open)),
       h("div", { class: "c-esp" }, (m.especialidades || [m.especialidade]).length
         ? h("div", { class: "chips" }, (m.especialidades || [m.especialidade]).map(function (e) { return h("span", { class: "tag" + (e === S.f.esp ? " match" : ""), text: e }); }))
         : h("span", { class: "muted", text: "Sem especialidade" })),
