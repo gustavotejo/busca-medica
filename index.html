@@ -189,6 +189,19 @@ input[type="text"]::placeholder, input[type="email"]::placeholder, input[type="n
 .obs-chip:hover { border-color: var(--accent); }
 .obs-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .obswrap { display: block; }
+.atend-list { margin-top: 8px; display: grid; gap: 3px; }
+.atend-line { font-size: 13px; color: var(--ink); line-height: 1.35; }
+.atend-line strong { color: var(--accent-text); margin-right: 6px; }
+.atend { display: grid; gap: 10px; }
+.loc { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface-2); display: grid; gap: 10px; }
+.loc-head { display: flex; align-items: center; gap: 10px; min-height: 28px; font: 600 15px var(--f-body); color: var(--ink); cursor: pointer; }
+.loc-head input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--accent); }
+.days { display: flex; flex-wrap: wrap; gap: 6px; }
+.days[hidden] { display: none; }
+.day { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 54px; min-height: 40px; padding: 0 10px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: 600 13.5px var(--f-body); cursor: pointer; }
+.day input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.day:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
+.day:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pvwrap { margin-top: 6px; }
 .pv { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid; }
 .pv::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
@@ -326,6 +339,10 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
           <select id="flt-pv"></select>
         </div>
         <div class="field">
+          <label for="flt-dia">Dia de atendimento</label>
+          <select id="flt-dia"></select>
+        </div>
+        <div class="field">
           <label for="flt-q">Nome ou CRM</label>
           <input type="text" id="flt-q" autocomplete="off" placeholder="Digite parte do nome ou CRM">
         </div>
@@ -361,6 +378,11 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
           <button type="button" class="link" id="conv-none">Desmarcar todos</button>
         </div>
         <div class="picks" id="f-conv" role="group" aria-labelledby="lg-conv"></div>
+      </div>
+      <div class="sect">
+        <h3>Local e dias de atendimento <span class="muted" style="font-weight:500;font-size:13px">(opcional)</span></h3>
+        <p class="hint">Marque os locais onde o médico atende e, em cada um, os dias da semana. É possível escolher mais de um local.</p>
+        <div class="atend" id="f-atend"></div>
       </div>
       <div class="sect">
         <h3>Informações adicionais <span class="muted" style="font-weight:500;font-size:13px">(opcional)</span></h3>
@@ -439,6 +461,8 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
 (function () {
   var DEF_ESP = ["Endocrinologista", "Cardiologista", "Geriatra", "Nefrologista", "Reumatologista", "Clínico Geral", "Infectologista", "Psicologia", "Urologista", "Gastroenterologista", "Ortopedista", "Psiquiatra", "Nutricionista", "Angiologista", "Ginecologista", "Dermatologista"];
   var DEF_CONV = ["AFRAFEP", "ASSEFAZ", "BRADESCO", "CAMED", "CAPESAUDE", "CASEMBRAPA", "CASSI", "COMSEDER", "CONAB", "FACHESF", "FUNASA", "FUSMAN", "FUSEX", "GEAP", "AMIL", "PETROBRAS", "POSTAL SAUDE", "SAÚDE CAIXA", "SULAMERICA", "SMILE", "UNIMED"];
+  var LOCAIS = [{ id: "centro", nome: "Centro" }, { id: "catole1", nome: "Catolé I" }, { id: "catole2", nome: "Catolé II" }];
+  var DIAS = [{ id: "seg", nome: "Seg", full: "Segunda-feira" }, { id: "ter", nome: "Ter", full: "Terça-feira" }, { id: "qua", nome: "Qua", full: "Quarta-feira" }, { id: "qui", nome: "Qui", full: "Quinta-feira" }, { id: "sex", nome: "Sex", full: "Sexta-feira" }, { id: "sab", nome: "Sáb", full: "Sábado" }, { id: "dom", nome: "Dom", full: "Domingo" }];
   var PV = { atende: "Atende primeira vez", nao_atende: "Não atende primeira vez", particular: "Primeira vez apenas particular" };
   var TIPOS = { texto: "Texto", telefone: "Telefone", whatsapp: "WhatsApp", email: "E-mail" };
   var DEF_CAMPOS = [
@@ -461,13 +485,13 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
   var S = {
     esp: DEF_ESP.slice(), conv: DEF_CONV.slice(), campos: cloneCampos(DEF_CAMPOS), pendingCampo: null, medicos: [],
     docsSeen: false, mode: "loading", canWrite: true,
-    f: { esp: "", conv: "", pv: "", q: "" },
+    f: { esp: "", conv: "", pv: "", dia: "", q: "" },
     form: { id: null, nome: "", esp: new Set(), conv: new Set(), info: emptyInfo() }, openId: null,
     pending: null, delId: null, isAdmin: false, auditLoading: false
   };
 
   var LEGACY_KEYS = ["crm", "telefone", "whatsapp", "email", "endereco"];
-  function emptyInfo() { return { observacoes: "", primeira_vez: "", pv_limitado: false, pv_qtd: "", campos: {} }; }
+  function emptyInfo() { return { observacoes: "", primeira_vez: "", pv_limitado: false, pv_qtd: "", atendimento: {}, campos: {} }; }
   function cleanInfo(raw) {
     var o = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
     var campos = {};
@@ -475,10 +499,16 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
       Object.keys(o.campos).forEach(function (k) { if (o.campos[k] != null && String(o.campos[k]).trim()) campos[k] = String(o.campos[k]); });
     }
     LEGACY_KEYS.forEach(function (k) { if (campos[k] == null && o[k] != null && String(o[k]).trim()) campos[k] = String(o[k]); });
+    var atend = {};
+    if (o.atendimento && typeof o.atendimento === "object" && !Array.isArray(o.atendimento)) {
+      LOCAIS.forEach(function (l) {
+        if (Array.isArray(o.atendimento[l.id])) atend[l.id] = DIAS.filter(function (d) { return o.atendimento[l.id].indexOf(d.id) >= 0; }).map(function (d) { return d.id; });
+      });
+    }
     var pvv = PV[o.primeira_vez] ? o.primeira_vez : "";
     var lim = pvv === "atende" && o.pv_limitado === true;
     var q = lim ? parseInt(o.pv_qtd, 10) : NaN;
-    return { observacoes: o.observacoes == null ? "" : String(o.observacoes), primeira_vez: pvv, pv_limitado: lim, pv_qtd: q >= 1 && q <= 99 ? String(q) : "", campos: campos };
+    return { observacoes: o.observacoes == null ? "" : String(o.observacoes), primeira_vez: pvv, pv_limitado: lim, pv_qtd: q >= 1 && q <= 99 ? String(q) : "", atendimento: atend, campos: campos };
   }
   function crmText(m) {
     return S.campos.filter(function (c) { return norm(c.rotulo) === "crm"; }).map(function (c) { return (m.info && m.info.campos[c.id]) || ""; }).join(" ");
@@ -688,11 +718,18 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
 
   /* ---------- Filtros ---------- */
   var PV_FILTRO = [["atende", PV.atende], ["nao_atende", PV.nao_atende], ["particular", PV.particular], ["none", "Não informado"]];
+  function diasDe(m) {
+    var at = (m.info && m.info.atendimento) || {}, out = [];
+    Object.keys(at).forEach(function (k) { (at[k] || []).forEach(function (d) { if (out.indexOf(d) < 0) out.push(d); }); });
+    return out;
+  }
+  function temDia(m, dia) { var d = diasDe(m); return dia === "none" ? d.length === 0 : d.indexOf(dia) >= 0; }
   function pvOf(m) { return (m.info && m.info.primeira_vez) || "none"; }
   function matches(m, f, skip) {
     if (skip !== "esp" && f.esp && (m.especialidades || [m.especialidade]).indexOf(f.esp) < 0) return false;
     if (skip !== "conv" && f.conv && m.convenios.indexOf(f.conv) < 0) return false;
     if (skip !== "pv" && f.pv && pvOf(m) !== f.pv) return false;
+    if (skip !== "dia" && f.dia && !temDia(m, f.dia)) return false;
     if (f.q && norm(m.nome).indexOf(norm(f.q)) < 0 && norm(crmText(m)).indexOf(norm(f.q)) < 0) return false;
     return true;
   }
@@ -705,7 +742,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     sel.value = current;
   }
   function clearFilters() {
-    S.f = { esp: "", conv: "", pv: "", q: "" };
+    S.f = { esp: "", conv: "", pv: "", dia: "", q: "" };
     $("flt-q").value = "";
     renderSearch();
   }
@@ -737,6 +774,11 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
       return { v: o[0], label: o[1] + " (" + n + ")" };
     });
     setOptions($("flt-pv"), "Todas", pvItems, S.f.pv);
+    var diaItems = DIAS.map(function (d) { return { v: d.id, label: d.full, n: 0 }; }).concat([{ v: "none", label: "Dias não informados", n: 0 }]).map(function (o) {
+      o.label += " (" + S.medicos.filter(function (m) { return matches(m, S.f, "dia") && temDia(m, o.v); }).length + ")";
+      return { v: o.v, label: o.label };
+    });
+    setOptions($("flt-dia"), "Todos", diaItems, S.f.dia);
     setOptions($("flt-esp"), "Todas as especialidades", espItems, S.f.esp);
     setOptions($("flt-conv"), "Todos os convênios", convItems, S.f.conv);
   }
@@ -749,6 +791,28 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
   function obsChip(m, info, open) {
     if (!(info.observacoes || "").trim()) return null;
     return h("div", { class: "obswrap" }, h("button", { type: "button", class: "obs-chip", text: "Possui observação", "aria-expanded": open ? "true" : "false", "aria-label": "Possui observação. " + (open ? "Ocultar" : "Ver") + " detalhes de " + m.nome, onclick: function () { S.openId = open ? null : m.id; renderResults(); } }));
+  }
+  function diasTexto(ids) {
+    if (!ids.length) return "dias não informados";
+    if (ids.length === DIAS.length) return "todos os dias";
+    var idx = DIAS.map(function (d, i) { return ids.indexOf(d.id) >= 0 ? i : -1; }).filter(function (i) { return i >= 0; });
+    var parts = [], i = 0;
+    while (i < idx.length) {
+      var j = i;
+      while (j + 1 < idx.length && idx[j + 1] === idx[j] + 1) j++;
+      if (j - i >= 2) parts.push(DIAS[idx[i]].nome + " a " + DIAS[idx[j]].nome);
+      else for (var k = i; k <= j; k++) parts.push(DIAS[idx[k]].nome);
+      i = j + 1;
+    }
+    return parts.join(", ");
+  }
+  function atendEl(info) {
+    var at = info.atendimento || {};
+    var locs = LOCAIS.filter(function (l) { return at[l.id]; });
+    if (!locs.length) return null;
+    return h("div", { class: "atend-list" }, locs.map(function (l) {
+      return h("div", { class: "atend-line" }, h("strong", { text: l.nome }), h("span", { text: diasTexto(at[l.id]) }));
+    }));
   }
   function pvBadge(info) {
     if (!info.primeira_vez) return null;
@@ -782,7 +846,8 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
         obsChip(m, info, open)),
       h("div", { class: "c-esp" }, (m.especialidades || [m.especialidade]).length
         ? h("div", { class: "chips" }, (m.especialidades || [m.especialidade]).map(function (e) { return h("span", { class: "tag" + (e === S.f.esp ? " match" : ""), text: e }); }))
-        : h("span", { class: "muted", text: "Sem especialidade" })),
+        : h("span", { class: "muted", text: "Sem especialidade" }),
+      atendEl(info)),
       h("div", { class: "c-conv" }, conv.length
         ? h("div", { class: "chips" }, conv.map(function (c) { return h("span", { class: "chip" + (c === S.f.conv ? " match" : ""), text: c }); }))
         : h("span", { class: "muted", text: "Nenhum convênio informado" })),
@@ -824,7 +889,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
       return;
     }
     var f = S.f;
-    var active = !!(f.esp || f.conv || f.pv || f.q.trim());
+    var active = !!(f.esp || f.conv || f.pv || f.dia || f.q.trim());
     var list = S.medicos.filter(function (m) { return matches(m, f); })
       .sort(function (a, b) { return collator.compare(a.especialidade, b.especialidade) || collator.compare(a.nome, b.nome); });
     var n = list.length;
@@ -835,6 +900,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     var chips = [];
     if (f.esp) chips.push(fchip("Especialidade", f.esp, function () { S.f.esp = ""; renderSearch(); }));
     if (f.conv) chips.push(fchip("Convênio", f.conv, function () { S.f.conv = ""; renderSearch(); }));
+    if (f.dia) chips.push(fchip("Dia de atendimento", f.dia === "none" ? "Dias não informados" : (DIAS.filter(function (d) { return d.id === f.dia; })[0] || { full: f.dia }).full, function () { S.f.dia = ""; renderSearch(); }));
     if (f.pv) chips.push(fchip("Primeira consulta", (PV_FILTRO.filter(function (o) { return o[0] === f.pv; })[0] || [0, f.pv])[1], function () { S.f.pv = ""; renderSearch(); }));
     if (f.q.trim()) chips.push(fchip("Nome", f.q.trim(), function () { S.f.q = ""; $("flt-q").value = ""; renderSearch(); }));
     if (chips.length) sum.append(h("div", { class: "fchips" }, chips));
@@ -927,6 +993,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     $("f-pv-qtd").disabled = !F.info.pv_limitado;
     var qv = F.info.pv_qtd || "";
     if ($("f-pv-qtd").value !== String(qv)) $("f-pv-qtd").value = qv;
+    syncAtend();
   }
 
   function usage(kind, name) {
@@ -1026,7 +1093,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
   /* ---------- Ações ---------- */
   function resetForm() { S.form = { id: null, nome: "", esp: new Set(), conv: new Set(), info: emptyInfo() }; $("f-err").textContent = ""; }
   function startEdit(m) {
-    S.form = { id: m.id, nome: m.nome, esp: new Set(m.especialidades || [m.especialidade].filter(Boolean)), conv: new Set(m.convenios), info: { observacoes: (m.info || {}).observacoes || "", primeira_vez: (m.info || {}).primeira_vez || "", pv_limitado: !!(m.info || {}).pv_limitado, pv_qtd: (m.info || {}).pv_qtd || "", campos: Object.assign({}, (m.info || {}).campos) } };
+    S.form = { id: m.id, nome: m.nome, esp: new Set(m.especialidades || [m.especialidade].filter(Boolean)), conv: new Set(m.convenios), info: { observacoes: (m.info || {}).observacoes || "", primeira_vez: (m.info || {}).primeira_vez || "", pv_limitado: !!(m.info || {}).pv_limitado, pv_qtd: (m.info || {}).pv_qtd || "", atendimento: JSON.parse(JSON.stringify((m.info || {}).atendimento || {})), campos: Object.assign({}, (m.info || {}).campos) } };
     $("f-err").textContent = "";
     renderForm();
     go("cadastrar");
@@ -1040,7 +1107,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
     if (!nome) { err.textContent = "Informe o nome do médico."; $("f-nome").focus(); return; }
     if (!F.esp.size) { err.textContent = "Escolha pelo menos uma especialidade."; $("f-esp").focus(); return; }
     var editing = !!F.id;
-    var info = { observacoes: String(F.info.observacoes || "").trim(), primeira_vez: PV[F.info.primeira_vez] ? F.info.primeira_vez : "", pv_limitado: F.info.primeira_vez === "atende" && !!F.info.pv_limitado, pv_qtd: F.info.pv_qtd, campos: {} };
+    var info = { observacoes: String(F.info.observacoes || "").trim(), primeira_vez: PV[F.info.primeira_vez] ? F.info.primeira_vez : "", pv_limitado: F.info.primeira_vez === "atende" && !!F.info.pv_limitado, pv_qtd: F.info.pv_qtd, atendimento: F.info.atendimento, campos: {} };
     S.campos.forEach(function (c) { var v = String(F.info.campos[c.id] || "").trim(); if (v) info.campos[c.id] = v; });
         var ok = await persistDoctor({ id: F.id, nome: nome, especialidades: sorted(Array.from(F.esp)), convenios: sorted(Array.from(F.conv)), info: info });
     if (!ok) return;
@@ -1110,6 +1177,7 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
 
   $("flt-esp").addEventListener("change", function (e) { S.f.esp = e.target.value; renderSearch(); });
   $("flt-conv").addEventListener("change", function (e) { S.f.conv = e.target.value; renderSearch(); });
+  $("flt-dia").addEventListener("change", function (e) { S.f.dia = e.target.value; renderSearch(); });
   $("flt-pv").addEventListener("change", function (e) { S.f.pv = e.target.value; renderSearch(); });
   $("flt-q").addEventListener("input", function (e) { S.f.q = e.target.value; renderSearch(); });
   $("flt-clear").addEventListener("click", clearFilters);
@@ -1139,6 +1207,44 @@ textarea::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
   $("add-esp").addEventListener("submit", function (e) { addItem("esp", e); });
   $("add-conv").addEventListener("submit", function (e) { addItem("conv", e); });
 
+  function buildAtend() {
+    var box = $("f-atend");
+    box.replaceChildren.apply(box, LOCAIS.map(function (l) {
+      var cb = h("input", { type: "checkbox", id: "loc-" + l.id });
+      cb.dataset.loc = l.id;
+      return h("div", { class: "loc" },
+        h("label", { class: "loc-head", for: "loc-" + l.id }, cb, h("span", { text: l.nome })),
+        h("div", { class: "days", id: "days-" + l.id, role: "group", "aria-label": "Dias de atendimento em " + l.nome, hidden: true }, DIAS.map(function (d) {
+          var dc = h("input", { type: "checkbox", "aria-label": d.full + " em " + l.nome });
+          dc.dataset.loc = l.id; dc.dataset.day = d.id;
+          return h("label", { class: "day" }, dc, h("span", { text: d.nome }));
+        })));
+    }));
+    box.addEventListener("change", function (e) {
+      var t = e.target, at = S.form.info.atendimento;
+      if (!t.dataset || !t.dataset.loc) return;
+      var id = t.dataset.loc;
+      if (t.dataset.day) {
+        if (!at[id]) at[id] = [];
+        var i = at[id].indexOf(t.dataset.day);
+        if (t.checked && i < 0) at[id].push(t.dataset.day);
+        if (!t.checked && i >= 0) at[id].splice(i, 1);
+      } else if (t.checked) { if (!at[id]) at[id] = []; }
+      else { delete at[id]; }
+      syncAtend();
+    });
+  }
+  function syncAtend() {
+    if (!$("loc-centro")) return;
+    var at = S.form.info.atendimento || {};
+    LOCAIS.forEach(function (l) {
+      var on = !!at[l.id];
+      $("loc-" + l.id).checked = on;
+      $("days-" + l.id).hidden = !on;
+      $("days-" + l.id).querySelectorAll("input").forEach(function (i) { i.checked = on && at[l.id].indexOf(i.dataset.day) >= 0; });
+    });
+  }
+  buildAtend();
   var THEME_KEY = "buscamedica_tema", THEMES = ["auto", "light", "dark"];
   var THEME_LABEL = { auto: "◐ Tema: Automático", light: "☀ Tema: Claro", dark: "☾ Tema: Escuro" };
   var themeNow = "auto";
